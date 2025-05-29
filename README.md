@@ -1,5 +1,5 @@
 # P3D 24H Mining Leaderboard
-The app provides The Ledger of Things (LoT) block authors ranked list aggregated for the last 24 hours.
+The app provides The Ledger of Things (LoT) ranked block authors list aggregated for the last 24 hours.
 
 <img width="974" alt="leaderboard" src="https://github.com/user-attachments/assets/69bf24d3-5802-4b00-926c-d9178a1c1dcc" />
 
