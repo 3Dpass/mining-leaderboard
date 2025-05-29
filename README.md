@@ -5,7 +5,7 @@ The app provides The Ledger of Things (LoT) ranked block authors list aggregated
 
 
 ## Blockchain explorer interaction
-The app fetches all data from the blockchain explorer via its [REST API](https://github.com/3Dpass/explorer?tab=readme-ov-file#rest-api)
+The app fetches all data from the [blockchain explorer](https://github.com/3Dpass/explorer) via its [REST API](https://github.com/3Dpass/explorer?tab=readme-ov-file#rest-api)
 
 ## Install 
 ```
