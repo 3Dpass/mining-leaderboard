@@ -254,7 +254,13 @@ const App = () => {
         </div>
       </div>
 
-      <h1 className="text-3xl font-bold text-center">⛏️ 24H Mining Leaderboard (target: 60 sec)</h1>
+      <h1 className="text-3xl font-bold text-center">⛏️ 24H Mining Leaderboard</h1>
+      <div className="text-center text-sm text-gray-500">
+        Block Target Time: 60 sec | {" "}
+          <a href="https://3dpass.org/features#scanproof-block-production" target="_blank" rel="noopener noreferrer" className="hover:underline">
+            Proof of Scan
+          </a>
+      </div>
 
       <div className="flex space-x-8">
         <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
@@ -341,7 +347,7 @@ const App = () => {
           </>
         )}
       </div>
-      <footer className="text-center text-sm text-gray-500 mt-12 py-6 border-t border-gray-200">
+      <footer className="text-center text-sm text-gray-500 mt-12 py-6">
         <div className="flex justify-center space-x-6">
           <a href="https://github.com/3Dpass/mining-leaderboard" target="_blank" rel="noopener noreferrer" className="hover:underline">
             GitHub
