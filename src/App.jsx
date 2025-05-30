@@ -256,10 +256,7 @@ const App = () => {
 
       <h1 className="text-3xl font-bold text-center">⛏️ 24H Mining Leaderboard</h1>
       <div className="text-center text-sm text-gray-500">
-        Block Target Time: 60 sec | {" "}
-          <a href="https://3dpass.org/features#scanproof-block-production" target="_blank" rel="noopener noreferrer" className="hover:underline">
-            Proof of Scan
-          </a>
+        Block Target Time: 60 sec | Session Length: 120 blocks
       </div>
 
       <div className="flex space-x-8">
