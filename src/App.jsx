@@ -33,6 +33,7 @@ const App = () => {
   const [blockReward, setBlockReward] = useState(null);
   const [validatorBlockReward, setValidatorBlockReward] = useState(null);
   const [difficulty, setDifficulty] = useState(null);
+  const [estimatedHashrate, setEstimatedHashrate] = useState(null);
 
   // Fetch leaderboard miners
   useEffect(() => {
@@ -167,40 +168,38 @@ const App = () => {
   }, []);
 
   // Fetch difficulty
-  useEffect(() => {
+    useEffect(() => {
     const fetchDifficulty = async () => {
       try {
         const overviewRes = await fetchWithCache(`${API_BASE}/overview`);
         const { finalizedHeight } = overviewRes;
-
         const blockRes = await fetchWithCache(`${API_BASE}/blocks/${finalizedHeight}`);
-        const block = blockRes;
 
-        const sealLog = block?.digest?.logs?.find(log => log.seal);
+        const sealLog = blockRes?.digest?.logs?.find(log => log.seal);
         const seal = sealLog?.seal;
 
         if (seal && seal.length > 1) {
           const sealHex = seal[1].replace(/^0x/, '');
-          const difficultyHexLE = sealHex.slice(0, 8); // little-endian
+          const difficultyHexLE = sealHex.slice(0, 8);
+          const diff = parseInt(difficultyHexLE.match(/../g).reverse().join(''), 16);
+          setDifficulty(diff);
 
-          const difficulty = parseInt(
-            difficultyHexLE.match(/../g).reverse().join(''),
-            16
-          );
-
-          setDifficulty(difficulty);
+          // calculate hashrate from difficulty / block time
+          const blockTimeSeconds = 60;
+          const estimated = diff / blockTimeSeconds;
+          setEstimatedHashrate(estimated);
         } else {
-          console.warn('No valid seal found.');
           setDifficulty(null);
+          setEstimatedHashrate(null);
         }
       } catch (error) {
         console.error('Error fetching difficulty:', error);
         setDifficulty(null);
+        setEstimatedHashrate(null);
       }
     };
 
     fetchDifficulty();
-
     const interval = setInterval(fetchDifficulty, 300000);
     return () => clearInterval(interval);
   }, []);
@@ -230,6 +229,17 @@ const App = () => {
     const days = Math.floor(hours / 24);
     return `${days} day${days > 1 ? 's' : ''} ago`;
   };
+
+  const formatHashrate = (value) => {
+  if (!value || value <= 0) return '0 H/s';
+  const units = ['H/s', 'KH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s', 'EH/s'];
+  let i = 0;
+  while (value >= 1000 && i < units.length - 1) {
+    value /= 1000;
+    i++;
+  }
+  return `${value.toFixed(2)} ${units[i]}`;
+};
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
@@ -273,7 +283,7 @@ const App = () => {
         <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">Difficulty</div>
           <div className="text-2xl font-extrabold">{difficulty ?? '--'}</div>
-          <div className="text-sm font-light">Difficulty</div>
+          <div className="text-sm font-light">Hashrate: ~ {estimatedHashrate ? formatHashrate(estimatedHashrate) : '--'}</div>
         </div>
       </div>
 
