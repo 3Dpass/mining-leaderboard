@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import ShareChart from './components/ShareChart';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { hexToU8a } from '@polkadot/util';
+import ValidatorTable from './components/ValidatorTable';
+
 
 const API_BASE = 'https://api.3dpscan.xyz';
 const PREFIX = 71; // 3DPass mainnet SS58 prefix
@@ -266,7 +268,7 @@ const App = () => {
 
       <h1 className="text-3xl font-bold text-center">⛏️ 24H Mining Leaderboard</h1>
       <div className="text-center text-sm text-gray-500">
-        Block Target Time: 60 sec | Session Length: 120 blocks
+        Block Target Time: 60 sec 
       </div>
 
       <div className="flex space-x-8">
@@ -353,6 +355,9 @@ const App = () => {
             )}
           </>
         )}
+      </div>
+      <div className="border rounded bg-gray-800 px-6 py-3">
+      <ValidatorTable />
       </div>
       <footer className="text-center text-sm text-gray-500 mt-12 py-6">
         <div className="flex justify-center space-x-6">
