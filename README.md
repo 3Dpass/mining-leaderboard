@@ -1,11 +1,34 @@
-# P3D 24H Mining Leaderboard
-The app provides The Ledger of Things (LoT) ranked block authors list aggregated for the last 24 hours.
+# Mining Leaderboard & Validator Set
+The App aggregates some useful stats for both miners and validators operating within The Ledge of Things, providing the following tools:
+### 1. Mining 24H Leaderboard:
+Features:
+ - Author Block Reward / Validators reward
+ - Current Difficulty
+ - Estimated Network Hashrate
+ - Ranked Block Authors list aggreagated for the last 24H
+ - Block Authors share
 
-<img width="974" alt="leaderboard" src="https://github.com/user-attachments/assets/69bf24d3-5802-4b00-926c-d9178a1c1dcc" />
+<img width="974" alt="mining-leaderboard-min" src="https://github.com/user-attachments/assets/35e4f6e2-7912-4395-b3c5-6a1e230f7616" />
 
+### 2. Validator set dashboard:
+ Features:
+ - Current Session index
+ - GRANDPA Finalization status
+ - Total active Validators
+ - Validators list
+ - Validator status (Active, Inactive, Candidate)
+ - Locks tracking
+ - Penalties tracking
+ - Last exit (block/reason)
+ - Equivocation (if a validator was reported at least once)
+
+<img width="974" alt="validator_set-min" src="https://github.com/user-attachments/assets/0dc3054c-9b30-4966-a933-d9515c5ce85e" />
 
 ## Blockchain explorer interaction
-The app fetches all data from the [blockchain explorer](https://github.com/3Dpass/explorer) via its [REST API](https://github.com/3Dpass/explorer?tab=readme-ov-file#rest-api)
+The app fetches blockchain data from the [explorer](https://github.com/3Dpass/explorer) via its [REST API](https://github.com/3Dpass/explorer?tab=readme-ov-file#rest-api)
+
+## LoT Node interaction
+The app interacts with the LoT Node via the [RPC API endpoint](https://github.com/3Dpass/rpc-list/blob/main/list.txt) providers to fetch the Validator set data.
 
 ## Install 
 ```
