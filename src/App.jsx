@@ -37,137 +37,196 @@ const App = () => {
   const [difficulty, setDifficulty] = useState(null);
   const [estimatedHashrate, setEstimatedHashrate] = useState(null);
 
+   // State for toggling visibility
+  const [showMining, setShowMining] = useState(true);
+  const [showValidators, setShowValidators] = useState(true);
+
   // Fetch leaderboard miners
   useEffect(() => {
-    const fetchBlocks = async () => {
-      try {
-        const overview = await fetchWithCache(`${API_BASE}/overview`);
-        const { latestHeight } = overview;
+  const fetchBlocks = async () => {
+    try {
+      const overview = await fetchWithCache(`${API_BASE}/overview`);
+      const { latestHeight } = overview;
 
-        // Fetch 1440 blocks concurrently with caching
-        const blockPromises = Array.from({ length: 1440 }, (_, i) =>
-          fetchWithCache(`${API_BASE}/blocks/${latestHeight - i}`)
-        );
-        const blocks = await Promise.all(blockPromises);
+      // Store failed block numbers for retrying later
+      const failedBlocks = [];
 
-        const authorCounts = {};
-        const lastBlockHeightByAuthor = {};
+      // Fetch 1440 blocks concurrently with caching
+      const blockPromises = Array.from({ length: 1440 }, (_, i) =>
+        fetchWithCache(`${API_BASE}/blocks/${latestHeight - i}`).catch((error) => {
+          console.warn(`Failed to fetch block ${latestHeight - i}:`, error);
+          failedBlocks.push(latestHeight - i); // Store failed block number
+          return null; // Return null for failed fetch
+        })
+      );
 
-        blocks.forEach(block => {
-          const digest = block?.digest?.logs || [];
-          digest.forEach(log => {
-            if (log.preRuntime) {
-              const rawAuthor = log.preRuntime[1];
-              try {
-                const address = encodeAddress(hexToU8a(rawAuthor), PREFIX);
-                authorCounts[address] = (authorCounts[address] || 0) + 1;
+      const blocks = await Promise.all(blockPromises);
 
-                if (
-                  !lastBlockHeightByAuthor[address] ||
-                  block.height > lastBlockHeightByAuthor[address]
-                ) {
-                  lastBlockHeightByAuthor[address] = block.height;
-                }
-              } catch (e) {
-                console.warn('Invalid public key:', rawAuthor);
+      // Filter out null values (failed fetches)
+      const validBlocks = blocks.filter(block => block !== null);
+
+      const authorCounts = {};
+      const lastBlockHeightByAuthor = {};
+
+      validBlocks.forEach(block => {
+        const digest = block?.digest?.logs || [];
+        digest.forEach(log => {
+          if (log.preRuntime) {
+            const rawAuthor = log.preRuntime[1];
+            try {
+              const address = encodeAddress(hexToU8a(rawAuthor), PREFIX);
+              authorCounts[address] = (authorCounts[address] || 0) + 1;
+
+              if (
+                !lastBlockHeightByAuthor[address] ||
+                block.height > lastBlockHeightByAuthor[address]
+              ) {
+                lastBlockHeightByAuthor[address] = block.height;
               }
+            } catch (e) {
+              console.warn('Invalid public key:', rawAuthor);
             }
-          });
+          }
+        });
+      });
+
+      const totalBlocks = validBlocks.length;
+
+      const sorted = Object.entries(authorCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([address, count], i) => {
+          const lastBlock = lastBlockHeightByAuthor[address] || 0;
+          return {
+            rank: i + 1,
+            address,
+            blocks: count,
+            share: (count / totalBlocks) * 100,
+            lastBlockHeight: lastBlock,
+            lastBlockAgoMin: latestHeight - lastBlock,
+          };
         });
 
-        const totalBlocks = blocks.length;
+      setAllMiners(sorted);
+      setLoading(false);
 
-        const sorted = Object.entries(authorCounts)
-          .sort((a, b) => b[1] - a[1])
-          .map(([address, count], i) => {
-            const lastBlock = lastBlockHeightByAuthor[address] || 0;
-            return {
-              rank: i + 1,
-              address,
-              blocks: count,
-              share: (count / totalBlocks) * 100,
-              lastBlockHeight: lastBlock,
-              lastBlockAgoMin: latestHeight - lastBlock,
-            };
-          });
-
-        setAllMiners(sorted);
-        setLoading(false);
-      } catch (e) {
-        console.error('Failed to fetch leaderboard:', e);
+      // Store failed blocks for retrying later
+      if (failedBlocks.length > 0) {
+        console.log('Failed to fetch blocks:', failedBlocks);
+        // You can store failedBlocks in a state or local storage for retrying later
       }
-    };
+    } catch (e) {
+      console.error('Failed to fetch leaderboard:', e);
+    }
+  };
 
-    fetchBlocks();
-    const interval = setInterval(fetchBlocks, 300000);
-    return () => clearInterval(interval);
-  }, []);
+  // Initial fetch
+  fetchBlocks();
 
-  // Fetch miner block reward
-  useEffect(() => {
-    const fetchBlockReward = async () => {
-      try {
-        const overviewRes = await fetchWithCache(`${API_BASE}/overview`);
-        const { finalizedHeight } = overviewRes;
+  // Set interval for fetching new blocks every 5 minutes
+  const interval = setInterval(async () => {
+    try {
+      const overview = await fetchWithCache(`${API_BASE}/overview`);
+      const { latestHeight } = overview;
 
-        const targetBlock = finalizedHeight - 10;
+      // Fetch only the latest block
+      const latestBlock = await fetchWithCache(`${API_BASE}/blocks/${latestHeight}`);
+      // Process the latest block similarly to how we processed the initial blocks
+      // (You may want to implement logic to update the existing miners list with the new block data)
 
-        const eventData = await fetchWithCache(
-          `${API_BASE}/events?section=balances&method=Deposit&is_extrinsic=false&time_dimension=block&block_start=${targetBlock}&page=0`
-        );
+    } catch (e) {
+      console.error('Failed to fetch new blocks:', e);
+    }
+  }, 300000); // 5 minutes
 
-        // Loop through items and extract Deposit amount
-        for (const item of eventData.items || []) {
-          for (const arg of item.args || []) {
-            if (arg.name === 'amount') {
-              const raw = arg.value;
-              const reward = Number(raw) / 10 ** 12;
-              setBlockReward(reward.toFixed(4));
-              return;
-            }
+  return () => clearInterval(interval);
+}, []);
+
+  // Helper function to fetch block reward with retry logic
+const fetchBlockRewardWithRetry = async (initialHeight, retries = 20) => {
+  for (let i = 0; i <= retries; i++) {
+    const targetBlock = initialHeight - i;
+    try {
+      const eventData = await fetchWithCache(
+        `${API_BASE}/events?section=balances&method=Deposit&is_extrinsic=false&time_dimension=block&block_start=${targetBlock}&page=0`
+      );
+
+      // Loop through items and extract Deposit amount
+      for (const item of eventData.items || []) {
+        for (const arg of item.args || []) {
+          if (arg.name === 'amount') {
+            const raw = arg.value;
+            const reward = Number(raw) / 10 ** 12;
+            return reward.toFixed(4); // Return the reward if found
           }
         }
-
-        // If no reward found
-        setBlockReward('N/A');
-      } catch (err) {
-        console.error('Error fetching block reward:', err);
-        setBlockReward('N/A');
       }
-    };
+    } catch (err) {
+      console.error(`Error fetching block reward for block ${targetBlock}:`, err);
+    }
+  }
+  return 'N/A'; // Return 'N/A' if all retries fail
+};
 
-    fetchBlockReward();
-  }, []);
+// Fetch miner block reward
+useEffect(() => {
+  const fetchBlockReward = async () => {
+    try {
+      const overviewRes = await fetchWithCache(`${API_BASE}/overview`);
+      const { finalizedHeight } = overviewRes;
 
-  // Fetch validator block reward (second Deposit event)
-  useEffect(() => {
-    const fetchValidatorBlockReward = async () => {
-      try {
-        const overviewRes = await fetchWithCache(`${API_BASE}/overview`);
-        const { finalizedHeight } = overviewRes;
+      const reward = await fetchBlockRewardWithRetry(finalizedHeight - 120);
+      setBlockReward(reward);
+    } catch (err) {
+      console.error('Error fetching block reward:', err);
+      setBlockReward('N/A');
+    }
+  };
 
-        const targetBlock = finalizedHeight - 10;
+  fetchBlockReward();
+}, []);
 
-        const eventData = await fetchWithCache(
-          `${API_BASE}/events?section=balances&method=Deposit&is_extrinsic=false&time_dimension=block&block_start=${targetBlock}&page=0`
-        );
+// Helper function to fetch validator block reward with retry logic
+const fetchValidatorBlockRewardWithRetry = async (initialHeight, retries = 20) => {
+  for (let i = 0; i <= retries; i++) {
+    const targetBlock = initialHeight - i;
+    try {
+      const eventData = await fetchWithCache(
+        `${API_BASE}/events?section=balances&method=Deposit&is_extrinsic=false&time_dimension=block&block_start=${targetBlock}&page=0`
+      );
 
-        if (eventData.items && eventData.items.length > 1) {
-          const secondEvent = eventData.items[1]; // 2nd Deposit event
-          const amountArg = secondEvent.args.find(arg => arg.name === 'amount');
+      if (eventData.items && eventData.items.length > 1) {
+        const secondEvent = eventData.items[1]; // 2nd Deposit event
+        const amountArg = secondEvent.args.find(arg => arg.name === 'amount');
 
-          if (amountArg?.value) {
-            const rewardP3D = Number(amountArg.value) / 10 ** 12;
-            setValidatorBlockReward(rewardP3D.toFixed(4));
-          }
+        if (amountArg?.value) {
+          const rewardP3D = Number(amountArg.value) / 10 ** 12;
+          return rewardP3D.toFixed(4); // Return the reward if found
         }
-      } catch (error) {
-        console.error('Failed to fetch validator block reward:', error);
       }
-    };
+    } catch (error) {
+      console.error(`Failed to fetch validator block reward for block ${targetBlock}:`, error);
+    }
+  }
+  return 'N/A'; // Return 'N/A' if all retries fail
+};
 
-    fetchValidatorBlockReward();
-  }, []);
+// Fetch validator block reward (second Deposit event)
+useEffect(() => {
+  const fetchValidatorBlockReward = async () => {
+    try {
+      const overviewRes = await fetchWithCache(`${API_BASE}/overview`);
+      const { finalizedHeight } = overviewRes;
+
+      const reward = await fetchValidatorBlockRewardWithRetry(finalizedHeight - 120);
+      setValidatorBlockReward(reward);
+    } catch (error) {
+      console.error('Failed to fetch validator block reward:', error);
+      setValidatorBlockReward('N/A');
+    }
+  };
+
+  fetchValidatorBlockReward();
+}, []);
 
   // Fetch difficulty
     useEffect(() => {
@@ -266,6 +325,26 @@ const App = () => {
         </div>
       </div>
 
+      {/* Toggle Buttons */}
+      <div className="flex justify-center space-x-4 mb-4">
+        <button
+          onClick={() => setShowMining(!showMining)}
+          className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+        >
+          {showMining ? 'Mining Leaderboard ON' : 'Mining Leaderboard OFF'}
+        </button>
+        <button
+          onClick={() => setShowValidators(!showValidators)}
+          className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+        >
+          {showValidators ? 'Validator Set ON' : 'Validator Set OFF'}
+        </button>
+      </div>
+
+      {/* Mining Content */}
+      {showMining && (
+    <div className="max-w-4xl mx-auto p-4 space-y-6">
+
       <h1 className="text-3xl font-bold text-center">⛏️ 24H Mining Leaderboard</h1>
       <div className="text-center text-sm text-gray-500">
         Block Target Time: 60 sec 
@@ -356,9 +435,16 @@ const App = () => {
           </>
         )}
       </div>
+    </div>
+   )}
+      
+      {/* Validators Content */}
+      {showValidators && (
       <div className="border rounded bg-gray-800 px-6 py-3">
       <ValidatorTable />
       </div>
+      )}
+
       <footer className="text-center text-sm text-gray-500 mt-12 py-6">
         <div className="flex justify-center space-x-6">
           <a href="https://github.com/3Dpass/mining-leaderboard" target="_blank" rel="noopener noreferrer" className="hover:underline">
