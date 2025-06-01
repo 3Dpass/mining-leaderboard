@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ApiPromise, WsProvider } from '@polkadot/api';
-
-const WS_ENDPOINT = 'wss://rpc.3dpass.org';
+import config from '../config'; // WSS RPC API endpoint
 
 const formatP3D = (value) => (Number(value) / 10 ** 12).toFixed(4);
 
@@ -19,7 +18,7 @@ const ValidatorTable = () => {
 
   const fetchValidators = async (retries = 3) => {
     try {
-      const provider = new WsProvider(WS_ENDPOINT);
+      const provider = new WsProvider(config.websocketEndpoint);
       const api = await ApiPromise.create({ provider });
 
       const [

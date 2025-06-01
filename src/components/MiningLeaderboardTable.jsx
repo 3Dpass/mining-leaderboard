@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { hexToU8a } from '@polkadot/util';
 import ShareChart from './ShareChart';
+import config from '../config'; // Blockchain explorer REST API Link
 
-const API_BASE = 'https://api.3dpscan.xyz';
 const PREFIX = 71; // 3DPass mainnet SS58 prefix
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -39,7 +39,7 @@ const MiningLeaderboardTable = () => {
   useEffect(() => {
   const fetchBlocks = async () => {
     try {
-      const overview = await fetchWithCache(`${API_BASE}/overview`);
+      const overview = await fetchWithCache(`${config.API_BASE}/overview`);
       const { latestHeight } = overview;
 
       // Store failed block numbers for retrying later
@@ -47,7 +47,7 @@ const MiningLeaderboardTable = () => {
 
       // Fetch 1440 blocks concurrently with caching
       const blockPromises = Array.from({ length: 1440 }, (_, i) =>
-        fetchWithCache(`${API_BASE}/blocks/${latestHeight - i}`).catch((error) => {
+        fetchWithCache(`${config.API_BASE}/blocks/${latestHeight - i}`).catch((error) => {
           console.warn(`Failed to fetch block ${latestHeight - i}:`, error);
           failedBlocks.push(latestHeight - i); // Store failed block number
           return null; // Return null for failed fetch
@@ -119,11 +119,11 @@ const MiningLeaderboardTable = () => {
   // Set interval for fetching new blocks every 5 minutes
   const interval = setInterval(async () => {
     try {
-      const overview = await fetchWithCache(`${API_BASE}/overview`);
+      const overview = await fetchWithCache(`${config.API_BASE}/overview`);
       const { latestHeight } = overview;
 
       // Fetch only the latest block
-      const latestBlock = await fetchWithCache(`${API_BASE}/blocks/${latestHeight}`);
+      const latestBlock = await fetchWithCache(`${config.API_BASE}/blocks/${latestHeight}`);
       // Process the latest block similarly to how we processed the initial blocks
       // (You may want to implement logic to update the existing miners list with the new block data)
 
@@ -141,7 +141,7 @@ const fetchBlockRewardWithRetry = async (initialHeight, retries = 20) => {
     const targetBlock = initialHeight - i;
     try {
       const eventData = await fetchWithCache(
-        `${API_BASE}/events?section=balances&method=Deposit&is_extrinsic=false&time_dimension=block&block_start=${targetBlock}&page=0`
+        `${config.API_BASE}/events?section=balances&method=Deposit&is_extrinsic=false&time_dimension=block&block_start=${targetBlock}&page=0`
       );
 
       // Loop through items and extract Deposit amount
@@ -165,7 +165,7 @@ const fetchBlockRewardWithRetry = async (initialHeight, retries = 20) => {
 useEffect(() => {
   const fetchBlockReward = async () => {
     try {
-      const overviewRes = await fetchWithCache(`${API_BASE}/overview`);
+      const overviewRes = await fetchWithCache(`${config.API_BASE}/overview`);
       const { finalizedHeight } = overviewRes;
 
       const reward = await fetchBlockRewardWithRetry(finalizedHeight - 120);
@@ -185,7 +185,7 @@ const fetchValidatorBlockRewardWithRetry = async (initialHeight, retries = 20) =
     const targetBlock = initialHeight - i;
     try {
       const eventData = await fetchWithCache(
-        `${API_BASE}/events?section=balances&method=Deposit&is_extrinsic=false&time_dimension=block&block_start=${targetBlock}&page=0`
+        `${config.API_BASE}/events?section=balances&method=Deposit&is_extrinsic=false&time_dimension=block&block_start=${targetBlock}&page=0`
       );
 
       if (eventData.items && eventData.items.length > 1) {
@@ -208,7 +208,7 @@ const fetchValidatorBlockRewardWithRetry = async (initialHeight, retries = 20) =
 useEffect(() => {
   const fetchValidatorBlockReward = async () => {
     try {
-      const overviewRes = await fetchWithCache(`${API_BASE}/overview`);
+      const overviewRes = await fetchWithCache(`${config.API_BASE}/overview`);
       const { finalizedHeight } = overviewRes;
 
       const reward = await fetchValidatorBlockRewardWithRetry(finalizedHeight - 120);
@@ -226,9 +226,9 @@ useEffect(() => {
     useEffect(() => {
     const fetchDifficulty = async () => {
       try {
-        const overviewRes = await fetchWithCache(`${API_BASE}/overview`);
+        const overviewRes = await fetchWithCache(`${config.API_BASE}/overview`);
         const { finalizedHeight } = overviewRes;
-        const blockRes = await fetchWithCache(`${API_BASE}/blocks/${finalizedHeight}`);
+        const blockRes = await fetchWithCache(`${config.API_BASE}/blocks/${finalizedHeight}`);
 
         const sealLog = blockRes?.digest?.logs?.find(log => log.seal);
         const seal = sealLog?.seal;
