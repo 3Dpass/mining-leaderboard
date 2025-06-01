@@ -36,7 +36,7 @@ const ValidatorTable = () => {
       ] = await Promise.all([
         api.query.session.currentIndex(),
         api.query.grandpa.state(),
-        api.consts.validatorSet.sessionDuration,
+        api.query.validatorSet.sessionDuration(),
         api.query.validatorSet.approvedValidators(),
         api.query.session.validators(),
         api.query.validatorSet.candidates(),
@@ -164,7 +164,8 @@ const ValidatorTable = () => {
           <div className="text-lg font-bold">{overview.activeValidatorCount ?? '--'}</div>
         </div>
       </div>
-
+        <div className="border rounded bg-gray-800 px-6 py-3">
+        <h2 className="text-white font-semibold text-lg mb-4">Validators</h2>
       {loading ? (
         <div className="text-center">
           <p>Loading validator data...</p>
@@ -175,6 +176,7 @@ const ValidatorTable = () => {
           <p>{error}</p>
         </div>
       ) : (
+
         <table className="w-full border-collapse border border-gray-700 text-white text-sm">
           <thead>
             <tr className="bg-gray-800">
@@ -209,6 +211,7 @@ const ValidatorTable = () => {
           </tbody>
         </table>
       )}
+    </div>
     </div>
   );
 };
