@@ -360,7 +360,7 @@ useEffect(() => {
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
 
-      <h1 className="text-3xl font-bold text-center">⛏️ 24H Mining Leaderboard</h1>
+      <h1 className="text-3xl font-bold text-center">⛏️ 24h Mining Leaderboard</h1>
       <div className="text-center text-sm text-gray-500">
         Block Target Time: 60 sec 
       </div>
@@ -389,7 +389,7 @@ useEffect(() => {
       </div>
 
       <div className="border rounded bg-gray-800 px-6 py-3 text-white">
-        <h2 className="text-white font-semibold text-lg mb-4">Mining share chart</h2>
+        <h2 className="text-white font-semibold text-lg mb-4">Mining Share Chart (24h)</h2>
         <ShareChart data={chartData} />
       </div>
 
@@ -405,7 +405,7 @@ useEffect(() => {
                   <th className="border border-gray-700 px-3 py-1 text-left">Rank</th>
                   <th className="border border-gray-700 px-3 py-1 text-left">Author</th>
                   <th className="border border-gray-700 px-3 py-1 text-right">Blocks</th>
-                  <th className="border border-gray-700 px-3 py-1 text-right">(%)</th>
+                  <th className="border border-gray-700 px-3 py-1 text-right">Share</th>
                   <th className="border border-gray-700 px-3 py-1 text-right">Last</th>
                   <th className="border border-gray-700 px-3 py-1 text-right">Mined</th>
                 </tr>
@@ -425,7 +425,7 @@ useEffect(() => {
                        </a>
                     </td>
                     <td className="border border-gray-700 px-3 py-1 text-right">{miner.blocks}</td>
-                    <td className="border border-gray-700 px-3 py-1 text-right">{miner.share.toFixed(2)}</td>
+                    <td className="border border-gray-700 px-3 py-1 text-right">{miner.share.toFixed(2)}%</td>
                     <td className="border border-gray-700 px-3 py-1 text-right">
                        <a
                          href={`https://3dpscan.xyz/#/blocks/${miner.lastBlockHeight}`}
