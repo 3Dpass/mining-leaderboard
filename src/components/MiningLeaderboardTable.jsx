@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { hexToU8a } from '@polkadot/util';
 import ShareChart from './ShareChart';
-import config from '../config'; // Blockchain explorer REST API Link
+import config from '../config'; // Blockchain explorer REST API endpoint
 
 const PREFIX = 71; // 3DPass mainnet SS58 prefix
 
