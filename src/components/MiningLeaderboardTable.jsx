@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { hexToU8a } from '@polkadot/util';
 import ShareChart from './ShareChart';
+import HashrateChart from './HashrateChart';
 import config from '../config'; // Blockchain explorer REST API endpoint
 
 const PREFIX = 71; // 3DPass mainnet SS58 prefix
@@ -26,6 +27,44 @@ async function fetchWithCache(url) {
   return data;
 }
 
+const extractDifficultyFromBlock = (block) => {
+  if (!block || !block.digest || !block.digest.logs) {
+    console.warn(`[extract] Block ${block?.height}: Missing digest/logs`);
+    return null;
+  }
+
+  const sealLog = block.digest.logs.find(log => log.seal);
+  if (!sealLog || !Array.isArray(sealLog.seal) || sealLog.seal.length < 2) {
+    console.warn(`[extract] Block ${block?.height}: Invalid sealLog`, sealLog);
+    return null;
+  }
+
+  const sealHex = sealLog.seal[1];
+  if (!sealHex || sealHex.length < 10) {
+    console.warn(`[extract] Block ${block?.height}: Invalid sealHex: ${sealHex}`);
+    return null;
+  }
+
+  try {
+    const leHex = sealHex.replace(/^0x/, '').slice(0, 8);
+    const bytes = leHex.match(/../g);
+    const reversed = bytes.reverse().join('');
+    const difficulty = parseInt(reversed, 16);
+
+    if (isNaN(difficulty)) throw new Error("Parsed NaN");
+
+    if (difficulty === 0) {
+      console.warn(`[extract] Block ${block?.height}: Parsed difficulty 0 from hex ${reversed}`);
+    }
+
+    return difficulty;
+  } catch (err) {
+    console.warn(`[extract] Block ${block?.height}: Failed to parse difficulty`, err.message);
+    return null;
+  }
+};
+
+
 const MiningLeaderboardTable = () => {
   const [loading, setLoading] = useState(true);
   const [allMiners, setAllMiners] = useState([]);
@@ -34,6 +73,9 @@ const MiningLeaderboardTable = () => {
   const [validatorBlockReward, setValidatorBlockReward] = useState(null);
   const [difficulty, setDifficulty] = useState(null);
   const [estimatedHashrate, setEstimatedHashrate] = useState(null);
+  const [perBlockHashrate, setPerBlockHashrate] = useState([]);
+
+  
 
   // Fetch leaderboard miners
   useEffect(() => {
@@ -59,6 +101,8 @@ const MiningLeaderboardTable = () => {
       // Filter out null values (failed fetches)
       const validBlocks = blocks.filter(block => block !== null);
 
+      const hashrateData = [];
+
       const authorCounts = {};
       const lastBlockHeightByAuthor = {};
 
@@ -82,7 +126,20 @@ const MiningLeaderboardTable = () => {
             }
           }
         });
-      });
+
+        // Extract difficulty and calculate hashrate
+const difficulty = extractDifficultyFromBlock(block);
+if (difficulty && difficulty > 0) {
+  const hashrate = difficulty / 60;
+  hashrateData.push({
+    height: block.height,
+    timestamp: block.time || Date.now(),
+    hashrate,
+  });
+} else {
+  console.warn(`[skip] Block ${block.height}: Skipped due to difficulty ${difficulty}`);
+}
+    });
 
       const totalBlocks = validBlocks.length;
 
@@ -102,6 +159,10 @@ const MiningLeaderboardTable = () => {
 
       setAllMiners(sorted);
       setLoading(false);
+      setPerBlockHashrate(
+          hashrateData.filter(item => typeof item.hashrate === 'number' && item.hashrate > 0).reverse()
+      );
+
 
       // Store failed blocks for retrying later
       if (failedBlocks.length > 0) {
@@ -323,6 +384,12 @@ useEffect(() => {
       </div>
 
       <div className="border rounded bg-gray-800 px-6 py-3 text-white">
+        <h2 className="text-white font-semibold text-lg mb-4">Estimated Hashrate (24h)</h2>
+         <HashrateChart data={perBlockHashrate} />
+      </div>
+
+      <div className="border rounded bg-gray-800 px-6 py-3 text-white">
+        <h2 className="text-white font-semibold text-lg mb-4">Mining share chart</h2>
         <ShareChart data={chartData} />
       </div>
 
