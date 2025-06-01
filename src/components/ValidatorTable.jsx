@@ -14,115 +14,153 @@ const ValidatorTable = () => {
     sessionLength: null,
     activeValidatorCount: null
   });
-  const [filter, setFilter] = useState('Active'); // State for filter
 
-  const fetchValidators = async (retries = 3) => {
-    try {
-      const provider = new WsProvider(config.websocketEndpoint);
-      const api = await ApiPromise.create({ provider });
+const [filter, setFilter] = useState('Active'); // State for filter
+const [searchQuery, setSearchQuery] = useState(''); // State for search query
 
-      const [
-        sessionIndex,
-        grandpaState,
-        sessionDuration,
-        approvedValidators,
-        activeValidators,
-        candidates,
-        locks,
-        penalties,
-        removals,
-        reports
-      ] = await Promise.all([
-        api.query.session.currentIndex(),
-        api.query.grandpa.state(),
-        api.query.validatorSet.sessionDuration(),
-        api.query.validatorSet.approvedValidators(),
-        api.query.session.validators(),
-        api.query.validatorSet.candidates(),
-        api.query.validatorSet.validatorLock.entries(),
-        api.query.validatorSet.penalty.entries(),
-        api.query.validatorSet.accountRemoveReason.entries(),
-        api.query.offences.reports.entries()
-      ]);
+const fetchIdentity = async (address, api) => {
+  try {
+    const identityOpt = await api.query.identity.identityOf(address);
+    if (identityOpt.isSome) {
+      const identity = identityOpt.unwrap();
+      const display = identity.info.display;
 
-      const actives = activeValidators.map(a => a.toString());
-      const queued = candidates.map(a => a.toString());
-
-      const lockMap = Object.fromEntries(
-        locks.map(([key, val]) => [key.args[0].toString(), val.toJSON()])
-      );
-
-      const penaltyMap = Object.fromEntries(
-        penalties.map(([key, val]) => [key.args[0].toString(), val.toString()])
-      );
-
-      const removalMap = Object.fromEntries(
-        removals.map(([key, val]) => [key.args[0].toString(), val.toJSON()])
-      );
-
-      const reportMap = {};
-      reports.forEach(([key, val]) => {
-        const offenders = val.toJSON().offender || [];
-        offenders.forEach(addr => {
-          reportMap[addr] = true;
-        });
-      });
-
-      const table = approvedValidators.map(addr => {
-        const address = addr.toString();
-        const isActive = actives.includes(address);
-        const isCandidate = queued.includes(address);
-
-        const lock = lockMap[address];
-        const penalty = penaltyMap[address];
-        const removal = removalMap[address];
-        const equivocation = !!reportMap[address];
-
+      // Handle different types (Raw, None, etc.)
+      if (display.isRaw) {
         return {
-          address,
-          status: isActive ? 'Active' : (isCandidate ? 'Candidate' : 'Inactive'),
-          lockedUntil: lock ? lock[0] : null,
-          lockedAmount: lock ? formatP3D(lock[1]) : null,
-          penalty: penalty ? formatP3D(penalty) : null,
-          removalBlock: removal ? removal[0] : null,
-          removalReason: removal ? removal[1] : null,
-          equivocation
+          displayName: display.asRaw.toUtf8(),
+          judgement: identity.judgements[0]?.[1]?.toString() || null
         };
-      });
-
-      setValidators(table);
-      setOverview({
-        sessionIndex: sessionIndex ? sessionIndex.toNumber() : null,
-        grandpaStatus: grandpaState ? (grandpaState.toString() === 'Paused' ? 'Paused' : 'Live') : null,
-        sessionLength: sessionDuration ? sessionDuration.toNumber() : null,
-        activeValidatorCount: actives.length
-      });
-    } catch (err) {
-      console.error('Error loading validator data:', err.message || err);
-      if (retries > 0) {
-        console.log(`Retrying... (${3 - retries + 1})`);
-        await new Promise(res => setTimeout(res, 2000)); // Wait 2 seconds before retrying
-        return fetchValidators(retries - 1);
       }
-      setError('Failed to load validator data. Please try again later.');
-    } finally {
-      setLoading(false);
     }
-  };
+    return {
+      displayName: 'N/A',
+      judgement: null
+    };
+  } catch (err) {
+    console.error(`Error fetching identity for ${address}:`, err);
+    return {
+      displayName: 'N/A',
+      judgement: null
+    };
+  }
+};
 
-  const filterValidators = (validators) => {
-    switch (filter) {
-      case 'Active':
-        return validators.filter(v => v.status === 'Active');
-      case 'Candidates':
-        return validators.filter(v => v.status === 'Candidate');
-      case 'Inactive':
-        return validators.filter(v => v.status === 'Inactive');
-      case 'All':
-      default:
-        return validators;
+const fetchValidators = async (retries = 3) => {
+  try {
+    const provider = new WsProvider(config.websocketEndpoint);
+    const api = await ApiPromise.create({ provider });
+
+    // Fetching the initial validator data
+    const [
+      sessionIndex,
+      grandpaState,
+      sessionDuration,
+      approvedValidators,
+      activeValidators,
+      candidates,
+      locks,
+      penalties,
+      removals,
+      reports
+    ] = await Promise.all([
+      api.query.session.currentIndex(),
+      api.query.grandpa.state(),
+      api.query.validatorSet.sessionDuration(),
+      api.query.validatorSet.approvedValidators(),
+      api.query.session.validators(),
+      api.query.validatorSet.candidates(),
+      api.query.validatorSet.validatorLock.entries(),
+      api.query.validatorSet.penalty.entries(),
+      api.query.validatorSet.accountRemoveReason.entries(),
+      api.query.offences.reports.entries()
+    ]);
+
+    const actives = activeValidators.map(a => a.toString());
+    const queued = candidates.map(a => a.toString());
+
+    const lockMap = Object.fromEntries(
+      locks.map(([key, val]) => [key.args[0].toString(), val.toJSON()])
+    );
+
+    const penaltyMap = Object.fromEntries(
+      penalties.map(([key, val]) => [key.args[0].toString(), val.toString()])
+    );
+
+    const removalMap = Object.fromEntries(
+      removals.map(([key, val]) => [key.args[0].toString(), val.toJSON()])
+    );
+
+    const reportMap = {};
+    reports.forEach(([key, val]) => {
+      const offenders = val.toJSON().offender || [];
+      offenders.forEach(addr => {
+        reportMap[addr] = true;
+      });
+    });
+
+    // Fetch identities for each approved validator
+    const identityPromises = approvedValidators.map(addr => fetchIdentity(addr.toString(), api));
+    const identities = await Promise.all(identityPromises);
+
+    const table = approvedValidators.map((addr, index) => {
+      const address = addr.toString();
+      const isActive = actives.includes(address);
+      const isCandidate = queued.includes(address);
+
+      const lock = lockMap[address];
+      const penalty = penaltyMap[address];
+      const removal = removalMap[address];
+      const equivocation = !!reportMap[address];
+
+      const identity = identities[index];
+      const displayName = identity.displayName;
+      const judgement = identity.judgement;
+
+
+      return {
+        address,
+        displayName,
+        status: isActive ? 'Active' : (isCandidate ? 'Candidate' : 'Inactive'),
+        lockedUntil: lock ? lock[0] : null,
+        lockedAmount: lock ? formatP3D(lock[1]) : null,
+        penalty: penalty ? formatP3D(penalty) : null,
+        removalBlock: removal ? removal[0] : null,
+        removalReason: removal ? removal[1] : null,
+        equivocation,
+        judgement
+      };
+    });
+
+    setValidators(table);
+    setOverview({
+      sessionIndex: sessionIndex ? sessionIndex.toNumber() : null,
+      grandpaStatus: grandpaState ? (grandpaState.toString() === 'Paused' ? 'Paused' : 'Live') : null,
+      sessionLength: sessionDuration ? sessionDuration.toNumber() : null,
+      activeValidatorCount: actives.length
+    });
+  } catch (err) {
+    console.error('Error loading validator data:', err.message || err);
+    if (retries > 0) {
+      console.log(`Retrying... (${3 - retries + 1})`);
+      await new Promise(res => setTimeout(res, 2000)); // Wait 2 seconds before retrying
+      return fetchValidators(retries - 1);
     }
-  };
+    setError('Failed to load validator data. Please try again later.');
+  } finally {
+    setLoading(false);
+  }
+};
+
+const filterValidators = (validators) => {
+  return validators.filter(v => {
+    const matchesStatus = filter === 'All' || v.status === filter;
+    const matchesSearch = 
+    v.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    v.displayName.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+};
 
   useEffect(() => {
     fetchValidators();
@@ -165,6 +203,17 @@ const ValidatorTable = () => {
       </div>
         <div className="border rounded bg-gray-800 px-6 py-3">
         <h2 className="text-white font-semibold text-lg mb-4">Validators</h2>
+
+        <div className="mb-4">
+          <input
+         type="text"
+         placeholder="Search by address or name"
+         value={searchQuery}
+         onChange={(e) => setSearchQuery(e.target.value)}
+         className="px-4 py-2 rounded bg-gray-700 text-white"
+          />
+        </div>
+
       {loading ? (
         <div className="text-center">
           <p>Loading validator data...</p>
@@ -179,7 +228,7 @@ const ValidatorTable = () => {
         <table className="w-full border-collapse border border-gray-700 text-white text-sm">
           <thead>
             <tr className="bg-gray-800">
-              <th className="border border-gray-700 px-3 py-1 text-left">Validator</th>
+              <th className="border border-gray-700 px-3 py-1 text-left">Address</th>
               <th className="border border-gray-700 px-3 py-1 text-left">Status</th>
               <th className="border border-gray-700 p-1">Locked</th>
               <th className="border border-gray-700 p-2">Last exit</th>
@@ -196,6 +245,23 @@ const ValidatorTable = () => {
                      className="underline hover:text-indigo-300 font-mono">
                     {v.address}
                   </a>
+                  <div className="text-sm text-gray-400">
+                    {v.judgement === 'Reasonable' ? (
+                      <span role="img" aria-label="OK">✅</span>
+                    ) : v.judgement === 'Erroneous' ? (
+                      <span role="img" aria-label="Erroneous">🚫</span>
+                    ) : v.judgement === 'FeePaid' ? (
+                      <span role="img" aria-label="FeePaid">🧾</span>
+                    ) : v.judgement === 'KnownGood' ? (
+                      <span role="img" aria-label="KnownGood">👤✅</span>
+                    ) : v.judgement === 'OutOfDate' ? (
+                      <span role="img" aria-label="OutOfDate">👤⚠️</span>
+                    ) : (
+                     <span role="img" aria-label="Unknown">❓</span>
+                    )}
+                    {" "}
+                    {v.displayName}
+                   </div>
                 </td>
                 <td className="border border-gray-700 p-2 text-center">{v.status}</td>
                 <td className="border border-gray-700 p-1 text-left">

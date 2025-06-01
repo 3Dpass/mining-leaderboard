@@ -35,13 +35,13 @@ const App = () => {
           onClick={() => setShowMining(!showMining)}
           className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
         >
-          {showMining ? 'Mining Leaderboard ON' : 'Mining Leaderboard OFF'}
+          {showMining ? 'Mining Dashboard ON' : 'Mining Dashboard OFF'}
         </button>
         <button
           onClick={() => setShowValidators(!showValidators)}
           className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
         >
-          {showValidators ? 'Validator Set ON' : 'Validator Set OFF'}
+          {showValidators ? 'Validator Dashboard ON' : 'Validator Dashboard OFF'}
         </button>
       </div>
 
