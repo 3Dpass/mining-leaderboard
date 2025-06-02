@@ -70,11 +70,15 @@ const MiningLeaderboardTable = () => {
   const [allMiners, setAllMiners] = useState([]);
   const [visibleCount, setVisibleCount] = useState(100);
   const [blockReward, setBlockReward] = useState(null);
-  const [validatorBlockReward, setValidatorBlockReward] = useState(null);
   const [difficulty, setDifficulty] = useState(null);
   const [estimatedHashrate, setEstimatedHashrate] = useState(null);
   const [perBlockHashrate, setPerBlockHashrate] = useState([]);
+  const totalMinersCount = allMiners.length;
+  const [searchQuery, setSearchQuery] = useState('');
 
+  const filteredMiners = allMiners.filter(miner => 
+  miner.address.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   
 
   // Fetch leaderboard miners
@@ -240,49 +244,6 @@ useEffect(() => {
   fetchBlockReward();
 }, []);
 
-// Helper function to fetch validator block reward with retry logic
-const fetchValidatorBlockRewardWithRetry = async (initialHeight, retries = 20) => {
-  for (let i = 0; i <= retries; i++) {
-    const targetBlock = initialHeight - i;
-    try {
-      const eventData = await fetchWithCache(
-        `${config.API_BASE}/events?section=balances&method=Deposit&is_extrinsic=false&time_dimension=block&block_start=${targetBlock}&page=0`
-      );
-
-      if (eventData.items && eventData.items.length > 1) {
-        const secondEvent = eventData.items[1]; // 2nd Deposit event
-        const amountArg = secondEvent.args.find(arg => arg.name === 'amount');
-
-        if (amountArg?.value) {
-          const rewardP3D = Number(amountArg.value) / 10 ** 12;
-          return rewardP3D.toFixed(4); // Return the reward if found
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to fetch validator block reward for block ${targetBlock}:`, error);
-    }
-  }
-  return 'N/A'; // Return 'N/A' if all retries fail
-};
-
-// Fetch validator block reward (second Deposit event)
-useEffect(() => {
-  const fetchValidatorBlockReward = async () => {
-    try {
-      const overviewRes = await fetchWithCache(`${config.API_BASE}/overview`);
-      const { finalizedHeight } = overviewRes;
-
-      const reward = await fetchValidatorBlockRewardWithRetry(finalizedHeight - 120);
-      setValidatorBlockReward(reward);
-    } catch (error) {
-      console.error('Failed to fetch validator block reward:', error);
-      setValidatorBlockReward('N/A');
-    }
-  };
-
-  fetchValidatorBlockReward();
-}, []);
-
   // Fetch difficulty
     useEffect(() => {
     const fetchDifficulty = async () => {
@@ -362,7 +323,7 @@ useEffect(() => {
 
       <h1 className="text-3xl font-bold text-center">⛏️ 24h Mining Leaderboard</h1>
       <div className="text-center text-sm text-gray-500">
-        Block Target Time: 60 sec 
+        Block Target Time: 60 sec (24h ~ 1440 blocks)
       </div>
 
       <div className="flex space-x-8">
@@ -372,9 +333,9 @@ useEffect(() => {
           <div className="text-sm font-light">P3D per block</div>
         </div>
         <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
-          <div className="text-sm font-semibold text-indigo-300">Validator block reward</div>
-          <div className="text-2xl font-extrabold">{validatorBlockReward ?? '--'}</div>
-          <div className="text-sm font-light">P3D per block</div>
+          <div className="text-sm font-semibold text-indigo-300">Authors</div>
+          <div className="text-2xl font-extrabold">{totalMinersCount > 0 ? totalMinersCount : '--'}</div>
+          <div className="text-sm font-light">Last 24h total</div>
         </div>
         <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">Difficulty</div>
@@ -389,12 +350,23 @@ useEffect(() => {
       </div>
 
       <div className="border rounded bg-gray-800 px-6 py-3 text-white">
-        <h2 className="text-white font-semibold text-lg mb-4">Mining Share Chart (24h)</h2>
+        <h2 className="text-white font-semibold text-lg mb-4">Authors Share Chart (24h)</h2>
         <ShareChart data={chartData} />
       </div>
 
       <div className="border rounded bg-gray-800 px-6 py-3">
         <h2 className="text-white font-semibold text-lg mb-4">Block Authors</h2>
+
+       <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Search by address"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="px-4 py-2 rounded bg-gray-700 text-white"
+          />
+        </div>
+
         {loading ? (
           <p className="text-white">Loading...</p>
         ) : (
@@ -411,7 +383,7 @@ useEffect(() => {
                 </tr>
               </thead>
               <tbody>
-                {allMiners.slice(0, visibleCount).map(miner => (
+                {filteredMiners.slice(0, visibleCount).map(miner => (
                   <tr key={miner.address} className="hover:bg-gray-700">
                     <td className="border border-gray-700 px-3 py-1">{miner.rank}</td>
                     <td className="border border-gray-700 px-3 py-1">
@@ -443,7 +415,7 @@ useEffect(() => {
               </tbody>
             </table>
 
-            {visibleCount < allMiners.length && (
+            {visibleCount < filteredMiners.length && (
               <div className="text-center mt-3">
                 <button
                   onClick={() => setVisibleCount(visibleCount + 100)}
