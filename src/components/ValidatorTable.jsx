@@ -215,7 +215,7 @@ const ValidatorTable = () => {
 
   return (
     <div className="p-4 bg-gray text-white rounded shadow space-y-6">
-      <h2 className="text-3xl font-bold text-center">Validator Set</h2>
+      <h2 className="text-3xl font-bold text-center">🛡️ Validator Set</h2>
       <div className="text-center text-sm text-gray-500">
         Session Length: {overview.sessionLength ?? '--'} {" "}
         blocks ~ {(overview.sessionLength !== undefined && 
@@ -253,7 +253,7 @@ const ValidatorTable = () => {
         </div>
       </div>
 
-      <div className="border rounded bg-gray-800 px-6 py-3">
+      <div className="border rounded bg-gray-800 px-4 py-3">
         <h2 className="text-white font-semibold text-lg mb-4">Validators</h2>
 
         <div className="mb-4">
@@ -276,6 +276,7 @@ const ValidatorTable = () => {
             <p>{error}</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-gray-700 text-white text-sm">
             <thead>
               <tr className="bg-gray-800">
@@ -311,12 +312,12 @@ const ValidatorTable = () => {
                         <span role="img" aria-label="Unknown">❓</span>
                       )}
                       {" "}
-                      {v.displayName}
+                      {v.displayName} |  Penalty: {v.penalty ?? '🟢'}
                     </div>
                   </td>
                   <td className="border border-gray-700 p-2 text-center">{v.status}</td>
                   <td className="border border-gray-700 p-1 text-left">
-                    P3D: {v.lockedAmount ?? '--'} Until # {v.lockedUntil ?? '--'} Penalty: {v.penalty ?? '🟢'}
+                    P3D: {v.lockedAmount ?? '--'} Until # {v.lockedUntil ?? '--'}
                   </td>
                   <td className="border border-gray-700 p-2 text-center">
                     {v.removalBlock ? `${v.removalBlock} (${v.removalReason})` : '--'}
@@ -326,6 +327,7 @@ const ValidatorTable = () => {
               ))}
             </tbody>
           </table>
+          </div>
         )}
         {visibleCount < filterValidators.length && (
           <div className="text-center mt-3">

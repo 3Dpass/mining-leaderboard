@@ -333,14 +333,14 @@ useEffect(() => {
           <div className="text-sm font-light">P3D per block</div>
         </div>
         <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
-          <div className="text-sm font-semibold text-indigo-300">Authors</div>
-          <div className="text-2xl font-extrabold">{totalMinersCount > 0 ? totalMinersCount : '--'}</div>
-          <div className="text-sm font-light">Last 24h total</div>
-        </div>
-        <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">Difficulty</div>
           <div className="text-2xl font-extrabold">{difficulty ?? '--'}</div>
           <div className="text-sm font-light">Hashrate: ~ {estimatedHashrate ? formatHashrate(estimatedHashrate) : '--'}</div>
+        </div>
+        <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
+          <div className="text-sm font-semibold text-indigo-300">Authors</div>
+          <div className="text-2xl font-extrabold">{totalMinersCount > 0 ? totalMinersCount : '--'}</div>
+          <div className="text-sm font-light">Last 24h total</div>
         </div>
       </div>
 
@@ -354,7 +354,7 @@ useEffect(() => {
         <ShareChart data={chartData} />
       </div>
 
-      <div className="border rounded bg-gray-800 px-6 py-3">
+      <div className="border rounded bg-gray-800 px-3 py-3">
         <h2 className="text-white font-semibold text-lg mb-4">Block Authors</h2>
 
        <div className="mb-4">
@@ -371,6 +371,7 @@ useEffect(() => {
           <p className="text-white">Loading...</p>
         ) : (
           <>
+          <div className="overflow-x-auto">
             <table className="w-full border-collapse border border-gray-700 text-white text-sm">
               <thead>
                 <tr>
@@ -414,7 +415,7 @@ useEffect(() => {
                 ))}
               </tbody>
             </table>
-
+           </div>
             {visibleCount < filteredMiners.length && (
               <div className="text-center mt-3">
                 <button
