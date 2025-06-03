@@ -372,22 +372,24 @@ useEffect(() => {
         ) : (
           <>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-700 text-white text-sm">
+            <table className="w-full border-collapse border-t border-b border-gray-700 text-white text-sm">
               <thead>
                 <tr>
-                  <th className="border border-gray-700 px-3 py-1 text-left">Rank</th>
-                  <th className="border border-gray-700 px-3 py-1 text-left">Author</th>
-                  <th className="border border-gray-700 px-3 py-1 text-right">Blocks</th>
-                  <th className="border border-gray-700 px-3 py-1 text-right">Share</th>
-                  <th className="border border-gray-700 px-3 py-1 text-right">Last</th>
-                  <th className="border border-gray-700 px-3 py-1 text-right">Mined</th>
+                  <th className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">Rank</th>
+                  <th className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">Author</th>
+                  <th className="border-t border-b border-gray-700 px-3 py-1 text-right text-gray-400">Score</th>
+                  <th className="border-t border-b border-gray-700 px-3 py-1 text-right text-gray-400">Share</th>
+                  <th className="border-t border-b border-gray-700 px-3 py-1 text-right text-gray-400">Last</th>
+                  <th className="border-t border-b border-gray-700 px-3 py-1 text-right text-gray-400">Mined</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredMiners.slice(0, visibleCount).map(miner => (
                   <tr key={miner.address} className="hover:bg-gray-700">
-                    <td className="border border-gray-700 px-3 py-1">{miner.rank}</td>
-                    <td className="border border-gray-700 px-3 py-1">
+                    <td className="border-t border-b border-gray-700 px-3 py-1">
+                      <span className="text-sm text-gray-400">{miner.rank}</span>
+                    </td>
+                    <td className="border-t border-b border-gray-700 px-3 py-1">
                         <a
                          href={`https://3dpscan.xyz/#/accounts/${miner.address}`}
                          target="_blank"
@@ -397,9 +399,13 @@ useEffect(() => {
                           {miner.address}
                        </a>
                     </td>
-                    <td className="border border-gray-700 px-3 py-1 text-right">{miner.blocks}</td>
-                    <td className="border border-gray-700 px-3 py-1 text-right">{miner.share.toFixed(2)}%</td>
-                    <td className="border border-gray-700 px-3 py-1 text-right">
+                    <td className="border-t border-b border-gray-700 px-3 py-1 text-right">
+                      <span className="text-sm text-gray-400">{miner.blocks}</span> 
+                    </td>
+                    <td className="border-t border-b border-gray-700 px-3 py-1 text-right">
+                      {miner.share.toFixed(2)}%
+                    </td>
+                    <td className="border-t border-b border-gray-700 px-3 py-1 text-right">
                        <a
                          href={`https://3dpscan.xyz/#/blocks/${miner.lastBlockHeight}`}
                          target="_blank"
@@ -410,7 +416,11 @@ useEffect(() => {
                        </a>
                       
                       </td>
-                    <td className="border border-gray-700 px-3 py-1 text-right">{formatLastBlockAgo(miner.lastBlockAgoMin)}</td>
+                    <td className="border-t border-b border-gray-700 px-3 py-1 text-right">
+                      <span className="text-sm text-gray-400">
+                      {formatLastBlockAgo(miner.lastBlockAgoMin)}
+                      </span>
+                      </td>
                   </tr>
                 ))}
               </tbody>

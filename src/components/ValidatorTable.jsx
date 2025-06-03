@@ -3,6 +3,7 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import config from '../config';
 
 const formatP3D = (value) => (Number(value) / 10 ** 12).toFixed(4);
+const formatP3Dlocked = (value) => (Number(value) / 10 ** 12).toFixed(0);
 
 const ValidatorTable = () => {
   const [validators, setValidators] = useState([]);
@@ -119,7 +120,7 @@ const ValidatorTable = () => {
           displayName,
           status: isActive ? 'Active' : (isCandidate ? 'Candidate' : 'Inactive'),
           lockedUntil: lock ? lock[0] : null,
-          lockedAmount: lock ? formatP3D(lock[1]) : null,
+          lockedAmount: lock ? formatP3Dlocked(lock[1]) : null,
           penalty: penalty ? formatP3D(penalty) : null,
           removalBlock: removal ? removal[0] : null,
           removalReason: removal ? removal[1] : null,
@@ -277,20 +278,20 @@ const ValidatorTable = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-gray-700 text-white text-sm">
+          <table className="w-full border-collapse border-t border-b border-gray-700 text-white text-sm">
             <thead>
               <tr className="bg-gray-800">
-                <th className="border border-gray-700 px-3 py-1 text-left">Address</th>
-                <th className="border border-gray-700 px-3 py-1 text-left">Status</th>
-                <th className="border border-gray-700 p-1">Locked</th>
-                <th className="border border-gray-700 p-2">Last exit</th>
-                <th className="border border-gray-700 p-2">Eq</th>
+                <th className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">Address</th>
+                <th className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">Status</th>
+                <th className="border-t border-b border-gray-700 p-1 text-right text-gray-400">Locked</th>
+                <th className="border-t border-b border-gray-700 p-2 text-right text-gray-400">Last exit</th>
+                <th className="border-t border-b border-gray-700 p-2 text-right text-gray-400">Eq</th>
               </tr>
             </thead>
             <tbody>
               {filterValidators.slice(0, visibleCount).map(v => (
                 <tr key={v.address} className="hover:bg-gray-700">
-                  <td className="border border-gray-700 p-2 font-mono">
+                  <td className="border-t border-b border-gray-700 p-2 font-mono">
                     <a href={`https://3dpscan.xyz/#/accounts/${v.address}`} 
                        target="_blank" 
                        rel="noreferrer" 
@@ -312,17 +313,33 @@ const ValidatorTable = () => {
                         <span role="img" aria-label="Unknown">❓</span>
                       )}
                       {" "}
-                      {v.displayName} |  Penalty: {v.penalty ?? '🟢'}
+                      {v.displayName}
                     </div>
                   </td>
-                  <td className="border border-gray-700 p-2 text-center">{v.status}</td>
-                  <td className="border border-gray-700 p-1 text-left">
-                    P3D: {v.lockedAmount ?? '--'} Until # {v.lockedUntil ?? '--'}
+                  <td className="border-t border-b border-gray-700 p-2 text-center">
+                    <span className="text-sm text-gray-400">{v.status}</span>
                   </td>
-                  <td className="border border-gray-700 p-2 text-center">
-                    {v.removalBlock ? `${v.removalBlock} (${v.removalReason})` : '--'}
+                  <td className="border-t border-b border-gray-700 p-1 text-right">
+                     {v.lockedAmount ?? '--'} P3D {" "}
+                    <span className="text-sm text-gray-400">
+                      Until # {v.lockedUntil ?? '--'} {" "}
+                      Penalty: <span className="text-sm text-orange-400">{v.penalty ?? '🟢'}</span>
+                    </span> 
                   </td>
-                  <td className="border border-gray-700 p-2 text-center">{v.equivocation ? '⚠️' : '✅'}</td>
+                  <td className="border-t border-b border-gray-700 p-2 text-right">
+                    <a href={`https://3dpscan.xyz/#/blocks/${v.removalBlock ? `${v.removalBlock}` : '--'}?tab=events&page=1`} 
+                       target="_blank" 
+                       rel="noreferrer" 
+                       className="underline hover:text-indigo-300 font-mono">
+                      {v.removalBlock ? `${v.removalBlock}` : ''}
+                    </a>
+
+                     {" "}
+                    <span className="text-sm text-gray-400">
+                     {v.removalBlock ? `(${v.removalReason})` : '--'}
+                     </span>
+                  </td>
+                  <td className="border-t border-b border-gray-700 p-2 text-center">{v.equivocation ? '⚠️' : '✅'}</td>
                 </tr>
               ))}
             </tbody>
