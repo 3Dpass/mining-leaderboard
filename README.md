@@ -54,7 +54,12 @@ npm install
 npm run dev
 ```
 
-## Contributiions
+## Deploy
+
+For details on building a production bundle and hosting it on your server, see
+[`docs/deployment.md`](docs/deployment.md).
+
+## Contributions
 We welcome community support with both Pull Requests and reporting bugs. Please don't hesitate to jump in.
 
 ### Responsibility disclaimer
