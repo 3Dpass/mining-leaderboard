@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ValidatorTable from './components/ValidatorTable';
 import MiningLeaderboardTable from './components/MiningLeaderboardTable';
+import config from './config';
 
 const App = () => {
   const [showMining, setShowMining] = useState(true);
@@ -12,7 +13,7 @@ const App = () => {
         <div className="max-w-6xl mx-auto flex space-x-6 justify-center font-medium text-sm">
           <img src="/img/3dpass_logo_white.png" width={24} height={24} alt="3DPass Logo" />
           <a href="https://3dpass.org/mainnet" target="_blank" rel="noopener noreferrer" className="hover:underline">
-            How to mine P3D
+            Mining P3D
           </a>
           <a href="https://3dpass.org/mainnet#validator" target="_blank" rel="noopener noreferrer" className="hover:underline">
             Validator
@@ -26,7 +27,19 @@ const App = () => {
           <a href="https://3dpass.network/" target="_blank" rel="noopener noreferrer" className="hover:underline">
             Telemetry
           </a>
+          <div className="relative text-left">
+            <span className="cursor-pointer group inline-block">
+             📶
+            <span className="absolute right-0 top-full mt-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-lg z-10 whitespace-nowrap">
+             Conections:<br />
+             - RPC: {config.websocketEndpoint} <br />
+             - Explorer: {config.API_BASE}
+            </span>
+          </span>
+          </div>
         </div>
+              
+
       </div>
 
       {/* Toggle Buttons */}

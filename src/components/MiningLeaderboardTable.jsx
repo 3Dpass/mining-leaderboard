@@ -3,6 +3,7 @@ import { encodeAddress } from '@polkadot/util-crypto';
 import { hexToU8a } from '@polkadot/util';
 import ShareChart from './ShareChart';
 import HashrateChart from './HashrateChart';
+import ValidatorRewardsUnlockForm from './ValidatorRewardsUnlockForm';
 import config from '../config'; // Blockchain explorer REST API endpoint
 
 const PREFIX = 71; // 3DPass mainnet SS58 prefix
@@ -79,6 +80,8 @@ const MiningLeaderboardTable = () => {
   const filteredMiners = allMiners.filter(miner => 
   miner.address.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const [showRewardsUnlockModal, setShowRewardsUnlockModal] = useState(false);
   
 
   // Fetch leaderboard miners
@@ -355,9 +358,20 @@ useEffect(() => {
       </div>
 
       <div className="border rounded bg-gray-800 px-3 py-3">
-        <h2 className="text-white font-semibold text-lg mb-4">Block Authors</h2>
 
        <div className="mb-4">
+         <div className="text-center">
+
+         <button
+          onClick={() => setShowRewardsUnlockModal(true)}
+          className="px-4 py-2 mr-2 mb-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
+          >
+          💰 Claim Vested Rewards
+       </button>
+
+       </div>
+
+
           <input
             type="text"
             placeholder="Search by address"
@@ -436,6 +450,19 @@ useEffect(() => {
                 </button>
               </div>
             )}
+            {showRewardsUnlockModal && (
+           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative">
+                <button
+                 onClick={() => setShowRewardsUnlockModal(false)}
+                  className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
+                 >
+                 ✖
+               </button>
+                <ValidatorRewardsUnlockForm/>
+             </div>
+           </div>
+          )}
           </>
         )}
       </div>
