@@ -3,16 +3,17 @@ import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp';
 import { encodeAddress } from '@polkadot/util-crypto';
 
-
 const SetSessionKeysForm = ({ onClose }) => {
   const { api } = usePolkadotApi();
 
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState('');
-  const [grandpaKey, setGrandpaKey] = useState('');
-  const [imonlineKey, setImonlineKey] = useState('');
+  const [grandpaKey, setGrandpaKey] = useState('0x');
+  const [imonlineKey, setImonlineKey] = useState('0x');
   const [proof, setProof] = useState('0x');
   const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [p3dBalance, setP3dBalance] = useState(null); // State for P3D balance
 
   // Load accounts on mount
   useEffect(() => {
@@ -21,27 +22,67 @@ const SetSessionKeysForm = ({ onClose }) => {
       const injectedAccounts = await web3Accounts();
       setAccounts(injectedAccounts);
       if (injectedAccounts.length > 0) {
-        setSelectedAccount(injectedAccounts[0].address);
+        setSelectedAccount(injectedAccounts[0]);
       }
     };
     loadAccounts();
   }, []);
 
+  // Fetch P3D balance when selected account changes
+  useEffect(() => {
+    const fetchP3DBalance = async () => {
+      if (!api || !selectedAccount) return;
+
+      try {
+        const { data: { free } } = await api.query.system.account(selectedAccount.address);
+        const balance = free.toBn().divn(1e6).toNumber() / 1e6; // Convert to P3D with 6 decimals
+        setP3dBalance(`${balance.toFixed(3)} P3D`);
+      } catch (error) {
+        console.error('Error fetching P3D balance:', error);
+        setP3dBalance('Error fetching balance');
+      }
+    };
+    fetchP3DBalance();
+  }, [selectedAccount, api]);
+
+  // Function to validate keys (only checks if they start with '0x')
+  const isValidKey = (key) => {
+    return key.startsWith('0x');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!api || !selectedAccount) return;
+    if (!api || !selectedAccount) {
+      console.error('API or selected account is not available');
+      return;
+    }
+
+    // Validate keys
+    if (!isValidKey(grandpaKey) || !isValidKey(imonlineKey) || !isValidKey(proof)) {
+      setStatus('❌ Invalid key format. Keys must start with "0x".');
+      return;
+    }
 
     try {
-      const injector = await web3FromAddress(selectedAccount);
+      setLoading(true);
+      setStatus(null); // Clear previous status
 
-      const keys = api.createType('SessionKeys', {
-        grandpa: grandpaKey,
-        im_online: imonlineKey
+      const injector = await web3FromAddress(selectedAccount.address);
+      console.log('Injector:', injector);
+
+      // Construct the session keys using the correct types
+      const keys = api.createType('PoscanRuntimeOpaqueSessionKeys', {
+        grandpa: api.createType('SpFinalityGrandpaAppPublic', grandpaKey),
+        imOnline: api.createType('PalletImOnlineSr25519AppSr25519Public', imonlineKey)
       });
 
-      const tx = api.tx.session.setKeys(keys, proof);
+      console.log('Constructed keys:', keys.toJSON());
 
-      await tx.signAndSend(selectedAccount, { signer: injector.signer }, ({ status: txStatus }) => {
+      const tx = api.tx.session.setKeys(keys, proof);
+      console.log('Transaction:', tx.toJSON());
+
+      await tx.signAndSend(selectedAccount.address, { signer: injector.signer }, ({ status: txStatus }) => {
+        console.log('Transaction status:', txStatus);
         if (txStatus.isInBlock) {
           setStatus('✔️ Included in block');
         } else if (txStatus.isFinalized) {
@@ -49,14 +90,19 @@ const SetSessionKeysForm = ({ onClose }) => {
         }
       });
     } catch (err) {
-      console.error(err);
-      setStatus('❌ Failed to send transaction');
+      console.error('Transaction error:', err);
+      setStatus('❌ Failed to send transaction: ' + err.message); // Provide more detailed error
+    } finally {
+      setLoading(false); // Reset loading state
     }
   };
 
   return (
     <div className="text-white space-y-4">
       <h3 className="text-lg font-bold">🔑 Set Session Keys</h3>
+      <div className="text-left text-sm text-gray-500">
+        <p>New keys will take into effect in 2 sessions.</p>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-3">
 
         {/* Account selector */}
@@ -65,23 +111,24 @@ const SetSessionKeysForm = ({ onClose }) => {
           <select
             value={selectedAccount?.address || ''}
             onChange={e => {
-           const account = accounts.find(a => a.address === e.target.value);
-           setSelectedAccount(account);
-          }}
-          className="bg-gray-800 text-white p-2 rounded"
+              const account = accounts.find(a => a.address === e.target.value);
+              setSelectedAccount(account);
+            }}
+            className="w-full bg-gray-800 p-2 rounded text-white"
           >
-         <option value="">-- Select Account --</option>
+            <option value="">-- Select Account --</option>
             {accounts.map(account => {
-               const formatted = encodeAddress(account.address, 71);
-               const preview = `${formatted.slice(0, 4)}...${formatted.slice(-4)}`;
-               const name = account.meta?.name || 'Unknown';
-        return (
-        <option key={account.address} value={account.address}>
-          {name} ({preview})
-        </option>
-        );
-      })}
-     </select>
+              const formatted = encodeAddress(account.address, 71);
+              const preview = `${formatted.slice(0, 4)}...${formatted.slice(-4)}`;
+              const name = account.meta?.name || 'Unknown';
+              const balance = p3dBalance && selectedAccount?.address === account.address ? p3dBalance : '...'; // Display balance or loading state
+              return (
+                <option key={account.address} value={account.address}>
+                  {name} ({preview}) - {balance}
+                </option>
+              );
+            })}
+          </select>
         </div>
 
         <div>
@@ -120,9 +167,10 @@ const SetSessionKeysForm = ({ onClose }) => {
         <div className="flex justify-between items-center">
           <button
             type="submit"
-            className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-white"
+            className={`bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-white ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={loading} // Disable button while loading
           >
-            Submit
+            {loading ? 'Submitting...' : 'Set Keys'}
           </button>
           <button
             type="button"

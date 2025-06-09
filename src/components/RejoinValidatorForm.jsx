@@ -15,6 +15,7 @@ const RejoinValidatorForm = () => {
 
   const handleSubmit = async () => {
     if (!api || !account || !injector) return;
+
     try {
       setSubmitting(true);
       setError(null);
@@ -22,16 +23,32 @@ const RejoinValidatorForm = () => {
 
       const tx = api.tx.validatorSet.rejoinValidator(account);
 
-      const unsub = await tx.signAndSend(account, { signer: injector }, ({ status, txHash }) => {
+      const unsub = await tx.signAndSend(account, { signer: injector }, ({ status, txHash, dispatchError }) => {
         if (status.isInBlock) {
           setTxHash(txHash.toString());
+          setSubmitting(false);
+          unsub();
+        }
+
+        // Check for errors
+        if (dispatchError) {
+          let errorMessage;
+
+          if (dispatchError.isModule) {
+            const { section, name, docs } = api.registry.findMetaError(dispatchError.asModule);
+            errorMessage = `${section}.${name}: ${docs.join(' ')}`;
+          } else {
+            errorMessage = dispatchError.toString();
+          }
+
+          setError(`⚠️ Extrinsic failed: ${errorMessage}`);
           setSubmitting(false);
           unsub();
         }
       });
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setError('❌ Transaction submission failed. Please try again later.');
       setSubmitting(false);
     }
   };
@@ -41,7 +58,7 @@ const RejoinValidatorForm = () => {
       <h2 className="text-lg font-bold">🔁 Rejoin Validator Set</h2>
       <div className="text-left text-sm text-gray-500">
         1. Come back window: ~ 2 weeks since last throw out <br />
-        2. Penalities must be paid off before rejoining
+        2. Penalties must be paid off before rejoining
       </div>
 
       {!account && (
@@ -70,7 +87,7 @@ const RejoinValidatorForm = () => {
       </button>
 
       {txHash && <p className="text-green-400">✅ Tx Sent: {txHash.slice(0, 46)}...</p>}
-      {error && <p className="text-red-400">❌ Error: {error}</p>}
+      {error && <p className="text-red-400 text-sm">Error: {error}</p>}
     </div>
   );
 };

@@ -1,22 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BN } from '@polkadot/util';
+import { formatBalance } from '@polkadot/util';
+import { encodeAddress } from '@polkadot/util-crypto';
 import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import { useWallet } from '../hooks/useWallet';
-import { encodeAddress } from '@polkadot/util-crypto';
 
 const PREFIX = 71; // SS58 for 3DPass
+formatBalance.setDefaults({ decimals: 12, unit: 'P3D' });
+
+// Helper to safely convert decimal strings to BN
+const toBnP3D = (val) => {
+  const parts = val.split('.');
+  const whole = parts[0] || '0';
+  const decimal = parts[1] || '';
+  const padded = decimal.padEnd(12, '0').slice(0, 12);
+  return new BN(whole + padded);
+};
 
 const ValidatorUnlockForm = () => {
   const { api } = usePolkadotApi();
   const { accounts, account, connect, injector } = useWallet();
 
   const [amount, setAmount] = useState('');
-  const [tip, setTip] = useState(''); // New state for tip
+  const [tip, setTip] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [txHash, setTxHash] = useState(null);
   const [error, setError] = useState(null);
-  const [extrinsicStatus, setExtrinsicStatus] = useState(null); // New state for extrinsic status
-  const [failureDetails, setFailureDetails] = useState(null); // New state for failure details
+  const [balances, setBalances] = useState({});
+
+  // Fetch balances for all accounts
+  useEffect(() => {
+    const fetchBalances = async () => {
+      if (!api || accounts.length === 0) return;
+
+      const newBalances = {};
+
+      for (const { address } of accounts) {
+        try {
+          const { data: { free } } = await api.query.system.account(address);
+          newBalances[address] = formatBalance(free, { withSi: true, forceUnit: '-' });
+        } catch (err) {
+          console.error('Error fetching balance for address:', address, err);
+          newBalances[address] = 'Error';
+        }
+      }
+
+      setBalances(newBalances);
+    };
+
+    fetchBalances();
+  }, [api, accounts]);
 
   const handleUnlock = async () => {
     if (!api || !account || !injector) return;
@@ -24,49 +57,40 @@ const ValidatorUnlockForm = () => {
     try {
       setSubmitting(true);
       setError(null);
-      setExtrinsicStatus(null); // Reset extrinsic status
-      setFailureDetails(null); // Reset failure details
+      setTxHash(null);
 
-      const parsedAmount = amount
-        ? new BN((parseFloat(amount) * 1e12).toString())
-        : null;
+      const parsedAmount = amount ? toBnP3D(amount) : null;
+      const parsedTip = tip ? toBnP3D(tip) : null;
 
-      const parsedTip = tip
-        ? new BN((parseFloat(tip) * 1e12).toString())
-        : null;
-
-      // Validate amount
       if (parsedAmount && parsedAmount.lte(new BN(0))) {
         throw new Error("Amount must be greater than zero.");
       }
 
-      const tx = api.tx.validatorSet.unlock(
-        parsedAmount !== null
-          ? api.createType('Option<BalanceOf>', parsedAmount)
-          : null
-      );
+      const optionAmount = parsedAmount !== null
+        ? api.createType('Option<BalanceOf>', parsedAmount)
+        : api.createType('Option<BalanceOf>', null);
 
-      const unsub = await tx.signAndSend(account, { signer: injector, tip: parsedTip }, ({ status, events, txHash }) => {
+      const tx = api.tx.validatorSet.unlock(optionAmount);
+
+      const options = { signer: injector };
+      if (parsedTip) {
+        options.tip = parsedTip;
+      }
+
+      const unsub = await tx.signAndSend(account, options, ({ status, events, txHash }) => {
         if (status.isInBlock) {
           setTxHash(txHash.toString());
           setSubmitting(false);
           unsub();
+        }
 
-          // Check for events
-          if (events) {
-            events.forEach(({ event }) => {
-              if (event.section === 'system') {
-                if (event.method === 'ExtrinsicFailed') {
-                  setExtrinsicStatus('An extrinsic failed.');
-                  const errorDetails = event.data.toJSON(); // Get error details
-                  setFailureDetails(errorDetails);
-                }
-              } else if (event.section === 'validatorSet') {
-                if (event.method === 'NotLocked') {
-                  setExtrinsicStatus('No lock.');
-                }
-              }
-            });
+        if (events) {
+          for (const { event } of events) {
+            if (event.section === 'system' && event.method === 'ExtrinsicFailed') {
+              setError('Transaction failed.');
+              setSubmitting(false);
+              unsub();
+            }
           }
         }
       });
@@ -81,22 +105,25 @@ const ValidatorUnlockForm = () => {
     <div className="p-4 rounded text-white space-y-4">
       <h2 className="text-xl font-bold">🔓 Unlock Collateral Funds</h2>
 
-      {!account && (
-        <div>
-          <p className="text-sm mb-1">Select account:</p>
-          <select
-            onChange={e => connect(e.target.value)}
-            className="bg-gray-700 p-2 rounded text-white w-full"
-          >
-            <option value="">Select account</option>
-            {accounts.map(acc => (
-              <option key={acc.address} value={acc.address}>
-                {acc.meta?.name || 'Unknown'} ({encodeAddress(acc.address, PREFIX).slice(0, 6)}…)
+      <div>
+        <label className="block mb-1">Select Account:</label>
+        <select
+          onChange={(e) => connect(e.target.value)}
+          className="w-full bg-gray-800 p-2 rounded text-white"
+          value={account || ''}
+        >
+          <option value="" disabled>Select account</option>
+          {accounts.map(({ address, meta }) => {
+            const formatted = encodeAddress(address, PREFIX);
+            const balance = balances[address] ?? '...';
+            return (
+              <option key={address} value={address}>
+                {meta.name || 'Unknown'} ({formatted.slice(0, 6)}...{formatted.slice(-4)}) - {balance}
               </option>
-            ))}
-          </select>
-        </div>
-      )}
+            );
+          })}
+        </select>
+      </div>
 
       <div>
         <label className="block mb-1">Amount to unlock (optional):</label>
@@ -111,20 +138,19 @@ const ValidatorUnlockForm = () => {
       </div>
 
       <div>
-        <label className="block mb-1">Tip to increase priority (optional):</label>
-       
+        <label className="block mb-1">Tips (optional):</label>
         <input
           type="number"
-          placeholder="Enter tip amount"
+          placeholder="Enter P3D amount"
           value={tip}
           onChange={e => setTip(e.target.value)}
-          className="w-full bg-gray-700 p-2 rounded text-white"
+          className="w-full bg-gray-800 p-2 rounded text-white"
         />
         <div className="text-xs text-gray-400 mt-1">Tip in P3D to prioritize this transaction.</div>
       </div>
 
       <button
-        disabled={submitting}
+        disabled={submitting || !account}
         onClick={handleUnlock}
         className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-white"
       >
@@ -133,14 +159,6 @@ const ValidatorUnlockForm = () => {
 
       {txHash && <p className="text-green-400 text-sm">✅ Tx Sent! {txHash.slice(0, 46)}...</p>}
       {error && <p className="text-red-400 text-sm">❌ Error: {error}</p>}
-      {extrinsicStatus && <p className="text-yellow-400 text-sm">⚠️ {extrinsicStatus}</p>}
-      {/* 
-      {failureDetails && (
-        <div className="text-red-400 text-sm">
-          <p>❌ Details: {JSON.stringify(failureDetails)}</p>
-        </div>
-      )}  
-        */}
     </div>
   );
 };

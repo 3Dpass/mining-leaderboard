@@ -13,32 +13,30 @@ const ValidatorPayPenaltyForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [txHash, setTxHash] = useState(null);
   const [error, setError] = useState(null);
-
   const [balances, setBalances] = useState({});
 
   // Fetch balances for selected accounts
   useEffect(() => {
-  const fetchBalances = async () => {
-    if (!api || accounts.length === 0) return;
+    const fetchBalances = async () => {
+      if (!api || accounts.length === 0) return;
 
-    const newBalances = {};
+      const newBalances = {};
 
-    for (const { address } of accounts) {
-      try {
-        const { data: { free } } = await api.query.system.account(address);
-        const balance = free.toBn().divn(1e6).toNumber() / 1e6; // Shows in P3D with 6 decimals
-        newBalances[address] = `${balance.toFixed(3)} P3D`;
-      } catch (err) {
-        newBalances[address] = 'Error';
+      for (const { address } of accounts) {
+        try {
+          const { data: { free } } = await api.query.system.account(address);
+          const balance = free.toBn().divn(1e6).toNumber() / 1e6; // Shows in P3D with 6 decimals
+          newBalances[address] = `${balance.toFixed(3)} P3D`;
+        } catch (err) {
+          newBalances[address] = 'Error';
+        }
       }
-    }
 
-    setBalances(newBalances);
-  };
+      setBalances(newBalances);
+    };
 
-  fetchBalances();
-}, [api, accounts]);
-
+    fetchBalances();
+  }, [api, accounts]);
 
   // Fetch penalty amount for the selected account
   useEffect(() => {
@@ -72,19 +70,32 @@ const ValidatorPayPenaltyForm = () => {
 
       const tx = api.tx.validatorSet.payPenalty();
 
-      const unsub = await tx.signAndSend(account, { signer: injector }, ({ status, txHash }) => {
+      const unsub = await tx.signAndSend(account, { signer: injector }, ({ status, txHash, dispatchError }) => {
         if (status.isInBlock) {
           setTxHash(txHash.toString());
           setSubmitting(false);
           unsub();
-        } else if (status.isError) {
-          setError('Transaction failed.');
+        }
+
+        // Check for errors
+        if (dispatchError) {
+          let errorMessage;
+
+          if (dispatchError.isModule) {
+            const { section, name, docs } = api.registry.findMetaError(dispatchError.asModule);
+            errorMessage = `${section}.${name}: ${docs.join(' ')}`;
+          } else {
+            errorMessage = dispatchError.toString();
+          }
+
+          setError(`Transaction failed: ${errorMessage}`);
           setSubmitting(false);
+          unsub();
         }
       });
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setError('Transaction submission failed. Please try again later.');
       setSubmitting(false);
     }
   };
@@ -99,18 +110,18 @@ const ValidatorPayPenaltyForm = () => {
           onChange={e => connect(e.target.value)}
           className="bg-gray-700 p-2 rounded text-white w-full"
         >
-        <option value="">Select account</option>
+          <option value="">Select account</option>
           {accounts.map(({ address, meta }) => {
-          const displayAddr = encodeAddress(address, 71).slice(0, 5) + '…';
-          const label = `${meta.name || 'Unknown'} (${displayAddr}) - ${balances[address] || '...'}`;
+            const displayAddr = encodeAddress(address, SS58_PREFIX).slice(0, 5) + '…';
+            const label = `${meta.name || 'Unknown'} (${displayAddr}) - ${balances[address] || '...'}`;
 
-        return (
-         <option key={address} value={address}>
-          {label}
-        </option>
-       );
-     })}
-       </select>
+            return (
+              <option key={address} value={address}>
+                {label}
+              </option>
+            );
+          })}
+        </select>
       </div>
 
       <div className="text-sm text-gray-300">
@@ -129,7 +140,7 @@ const ValidatorPayPenaltyForm = () => {
       </button>
 
       {txHash && <p className="text-green-400">✅ Tx Sent: {txHash.slice(0, 46)}...</p>}
-      {error && <p className="text-red-400">❌ {error}</p>}
+      {error && <p className="text-red-400 text-sm">❌ {error}</p>}
     </div>
   );
 };

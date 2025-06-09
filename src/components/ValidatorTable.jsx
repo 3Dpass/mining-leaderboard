@@ -203,7 +203,7 @@ const ValidatorTable = () => {
     };
 
     load();
-    const interval = setInterval(load, 5 * 60 * 1000);
+    const interval = setInterval(load, 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, [api, connected, fetchValidators, fetchBlockReward, fetchBestFinalizedBlock]);
 
