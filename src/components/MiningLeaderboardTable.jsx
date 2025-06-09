@@ -111,28 +111,35 @@ const MiningLeaderboardTable = () => {
       const hashrateData = [];
 
       const authorCounts = {};
-      const lastBlockHeightByAuthor = {};
+const lastBlockHeightByAuthor = {};
 
-      validBlocks.forEach(block => {
-        const digest = block?.digest?.logs || [];
-        digest.forEach(log => {
-          if (log.preRuntime) {
-            const rawAuthor = log.preRuntime[1];
-            try {
-              const address = encodeAddress(hexToU8a(rawAuthor), PREFIX);
-              authorCounts[address] = (authorCounts[address] || 0) + 1;
+validBlocks.forEach(block => {
+  const digest = block?.digest?.logs || [];
+  const seenAuthors = new Set(); // Track seen authors for this block
 
-              if (
-                !lastBlockHeightByAuthor[address] ||
-                block.height > lastBlockHeightByAuthor[address]
-              ) {
-                lastBlockHeightByAuthor[address] = block.height;
-              }
-            } catch (e) {
-              console.warn('Invalid public key:', rawAuthor);
-            }
+  digest.forEach(log => {
+    if (log.preRuntime) {
+      const rawAuthor = log.preRuntime[1];
+      try {
+        const address = encodeAddress(hexToU8a(rawAuthor), PREFIX);
+        
+        // Only count if this author hasn't been counted for this block
+        if (!seenAuthors.has(address)) {
+          authorCounts[address] = (authorCounts[address] || 0) + 1;
+          seenAuthors.add(address); // Mark this author as seen for this block
+
+          if (
+            !lastBlockHeightByAuthor[address] ||
+            block.height > lastBlockHeightByAuthor[address]
+          ) {
+            lastBlockHeightByAuthor[address] = block.height;
           }
-        });
+        }
+      } catch (e) {
+        console.warn('Invalid public key:', rawAuthor);
+      }
+    }
+  });
 
         // Extract difficulty and calculate hashrate
 const difficulty = extractDifficultyFromBlock(block);
