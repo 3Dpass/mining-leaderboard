@@ -407,10 +407,10 @@ useEffect(() => {
               <tbody>
                 {filteredMiners.slice(0, visibleCount).map(miner => (
                   <tr key={miner.address} className="hover:bg-gray-700">
-                    <td className="border-t border-b border-gray-700 px-3 py-1">
+                    <td cclassName="px-2 py-1 font-mono">
                       <span className="text-sm text-gray-400">{miner.rank}</span>
                     </td>
-                    <td className="border-t border-b border-gray-700 px-3 py-1">
+                    <td className="px-2 py-1 font-mono">
                         <a
                          href={`https://3dpscan.xyz/#/accounts/${miner.address}`}
                          target="_blank"
