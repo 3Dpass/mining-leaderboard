@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { usePolkadotApi } from '../hooks/usePolkadotApi';
+// import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp';
 import { encodeAddress } from '@polkadot/util-crypto';
 
-const SetSessionKeysForm = ({ onClose }) => {
-  const { api } = usePolkadotApi();
+const SetSessionKeysForm = ({ api, onClose }) => {
+  // const { api } = usePolkadotApi();
 
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState('');

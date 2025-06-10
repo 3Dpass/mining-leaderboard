@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { hexToU8a } from '@polkadot/util';
+import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import ShareChart from './ShareChart';
 import HashrateChart from './HashrateChart';
 import ValidatorRewardsUnlockForm from './ValidatorRewardsUnlockForm';
@@ -67,6 +68,7 @@ const extractDifficultyFromBlock = (block) => {
 
 
 const MiningLeaderboardTable = () => {
+  const { api, connected } = usePolkadotApi();
   const [loading, setLoading] = useState(true);
   const [allMiners, setAllMiners] = useState([]);
   const [visibleCount, setVisibleCount] = useState(100);
@@ -407,7 +409,7 @@ useEffect(() => {
               <tbody>
                 {filteredMiners.slice(0, visibleCount).map(miner => (
                   <tr key={miner.address} className="hover:bg-gray-700">
-                    <td cclassName="px-2 py-1 font-mono">
+                    <td className="px-2 py-1 font-mono">
                       <span className="text-sm text-gray-400">{miner.rank}</span>
                     </td>
                     <td className="px-2 py-1 font-mono">
@@ -466,7 +468,7 @@ useEffect(() => {
                  >
                  ✖
                </button>
-                <ValidatorRewardsUnlockForm/>
+                <ValidatorRewardsUnlockForm api={api} />
              </div>
            </div>
           )}

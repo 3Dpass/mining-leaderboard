@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { useWallet } from '../hooks/useWallet';
-import { usePolkadotApi } from '../hooks/usePolkadotApi';
+// import { usePolkadotApi } from '../hooks/usePolkadotApi';
 
 const SS58_PREFIX = 71;
 
-const ValidatorAddForm = () => {
-  const { api } = usePolkadotApi();
+const ValidatorAddForm = ({ api }) => {
+ // const { api } = usePolkadotApi();
   const { accounts, account, connect, injector } = useWallet();
 
   const [balances, setBalances] = useState({});

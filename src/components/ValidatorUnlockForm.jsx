@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BN } from '@polkadot/util';
 import { formatBalance } from '@polkadot/util';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { usePolkadotApi } from '../hooks/usePolkadotApi';
+//import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import { useWallet } from '../hooks/useWallet';
 
 const PREFIX = 71; // SS58 for 3DPass
@@ -17,8 +17,8 @@ const toBnP3D = (val) => {
   return new BN(whole + padded);
 };
 
-const ValidatorUnlockForm = () => {
-  const { api } = usePolkadotApi();
+const ValidatorUnlockForm = ({ api }) => {
+  // const { api } = usePolkadotApi();
   const { accounts, account, connect, injector } = useWallet();
 
   const [amount, setAmount] = useState('');

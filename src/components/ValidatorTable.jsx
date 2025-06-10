@@ -336,7 +336,8 @@ const ValidatorTable = () => {
                        v.judgement === 'KnownGood' ? '👤✅' :
                        v.judgement === 'OutOfDate' ? '👤⚠️' : '❓'} {v.displayName}
                       </div>
-                      <ValidatorKeysPopup stashAddress={v.address} />
+                     {/* {v.address && <ValidatorKeysPopup stashAddress={v.address} />} */}
+                      <ValidatorKeysPopup api={api} stashAddress={v.address} />
                   </td>
                   <td className="border-t border-b border-gray-700 p-2 text-center text-sm text-gray-400">
                     {v.status}
@@ -386,7 +387,7 @@ const ValidatorTable = () => {
                  >
                  ✖
                </button>
-                <ValidatorLockForm/>
+                <ValidatorLockForm api={api} />
              </div>
            </div>
           )}
@@ -400,7 +401,7 @@ const ValidatorTable = () => {
                  >
                  ✖
                </button>
-                <ValidatorAddForm/>
+                <ValidatorAddForm api={api} />
              </div>
            </div>
           )}
@@ -408,7 +409,7 @@ const ValidatorTable = () => {
           {showKeysModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
            <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative">
-             <SetSessionKeysForm onClose={() => setShowKeysModal(false)} />
+             <SetSessionKeysForm api={api} onClose={() => setShowKeysModal(false)} />
           </div>
          </div>
         )}
@@ -422,7 +423,7 @@ const ValidatorTable = () => {
                  >
                  ✖
                </button>
-                <RejoinValidatorForm/>
+                <RejoinValidatorForm api={api} />
              </div>
            </div>
           )}
@@ -436,7 +437,7 @@ const ValidatorTable = () => {
                  >
                  ✖
                </button>
-                <ValidatorUnlockForm/>
+                <ValidatorUnlockForm api={api} />
              </div>
            </div>
           )}
@@ -450,7 +451,7 @@ const ValidatorTable = () => {
                  >
                  ✖
                </button>
-                <ValidatorRewardsUnlockForm/>
+                <ValidatorRewardsUnlockForm api={api} />
              </div>
            </div>
           )}
@@ -464,7 +465,7 @@ const ValidatorTable = () => {
                  >
                  ✖
                </button>
-                <ValidatorPayPenaltyForm/>
+                <ValidatorPayPenaltyForm api={api} />
              </div>
            </div>
           )}
