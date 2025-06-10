@@ -8,8 +8,12 @@ Features:
  - Estimated Network Hashrate
  - Ranked Block Authors list aggreagated for the last 24H
  - Block Authors share
+ - Vestiing schedule
+ - Management tools:
+   - "Claim" – `rewards.unlock()` method to claim all vested rewards available
 
-<img width="974" alt="mining-leaderboard-min" src="https://github.com/user-attachments/assets/35e4f6e2-7912-4395-b3c5-6a1e230f7616" />
+<img width="974" alt="P3D_mining_dashboard-min" src="https://github.com/user-attachments/assets/7dec2491-63ec-4eda-80ae-669cfce28b11" />
+
 
 ### 2. Validator set dashboard:
  Features:
@@ -24,8 +28,17 @@ Features:
  - Penalties tracking
  - Last exit (block/reason)
  - Equivocation (if a validator was reported at least once)
+ - Validator management tools:
+    - "Lock" - `valiidatorSet.lock(amount,until,period)` method to lock funds for the collateral
+    - "Join" – `valiidatorSet.addValidatorSelf()` method to add new validator into the set
+    - "Set Keys" – `session.setKeys(keys, proof)` method to set up keys for validator
+    - "Rejoin" – `valiidatorSet.rejoinValidator(validatorId)` method to rejoin penalties free after removal
+    - "Unlock" – `valiidatorSet.unlock(amount)` method to unlock collateral funds
+    - "Claim" – `rewards.unlock()` method to claim all vested rewards available
+    - "Penalty" – `validatorSet.payPenalty()` to pay off current penalties
+      
+<img width="985" alt="validator_dashboard-min" src="https://github.com/user-attachments/assets/cb7e0b5f-0eda-450e-a994-e3ea05d90c2f" />
 
-<img width="974" alt="validator_set-min" src="https://github.com/user-attachments/assets/0dc3054c-9b30-4966-a933-d9515c5ce85e" />
 
 ## Blockchain explorer interaction
 The app fetches the **Mining Leaderboard** data from the [explorer](https://github.com/3Dpass/explorer) via its [REST API](https://github.com/3Dpass/explorer?tab=readme-ov-file#rest-api). 
