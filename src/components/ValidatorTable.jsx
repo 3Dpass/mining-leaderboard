@@ -7,6 +7,7 @@ import RejoinValidatorForm from './RejoinValidatorForm';
 import ValidatorUnlockForm from './ValidatorUnlockForm';
 import ValidatorRewardsUnlockForm from './ValidatorRewardsUnlockForm';
 import ValidatorPayPenaltyForm from './ValidatorPayPenaltyForm';
+import ValidatorKeysPopup from './ValidatorKeysPopup';
 
 const formatP3D = (value) => (Number(value) / 10 ** 12).toFixed(4);
 const formatP3Dlocked = (value) => (Number(value) / 10 ** 12).toFixed(0);
@@ -334,7 +335,8 @@ const ValidatorTable = () => {
                        v.judgement === 'FeePaid' ? '🧾' :
                        v.judgement === 'KnownGood' ? '👤✅' :
                        v.judgement === 'OutOfDate' ? '👤⚠️' : '❓'} {v.displayName}
-                    </div>
+                      </div>
+                      <ValidatorKeysPopup stashAddress={v.address} />
                   </td>
                   <td className="border-t border-b border-gray-700 p-2 text-center text-sm text-gray-400">
                     {v.status}

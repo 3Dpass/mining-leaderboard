@@ -8,7 +8,7 @@ const App = () => {
   const [showValidators, setShowValidators] = useState(true);
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
+    <div className="max-w-6xl mx-auto p-4 space-y-6">
       <div className="bg-gray-900 text-white p-4 shadow-md">
         <div className="max-w-6xl mx-auto flex space-x-6 justify-center font-medium text-sm">
           <img src="/img/3dpass_logo_white.png" width={24} height={24} alt="3DPass Logo" />
