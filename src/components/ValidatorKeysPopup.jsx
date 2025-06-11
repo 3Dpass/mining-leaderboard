@@ -1,92 +1,155 @@
 import React, { useState, useEffect } from 'react';
-// import { usePolkadotApi } from '../hooks/usePolkadotApi';
-import { decodeAddress } from '@polkadot/util-crypto';
-import { u8aEq } from '@polkadot/util';
+import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
+import { u8aEq, u8aToHex } from '@polkadot/util';
 
 let cachedQueuedKeys = null;
 
 const ValidatorKeysPopup = ({ api, stashAddress }) => {
-///  const { api } = usePolkadotApi();
   const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [queuedKeyData, setQueuedKeyData] = useState(null);
   const [nextKeyData, setNextKeyData] = useState(null);
+  const [activeGrandpa, setActiveGrandpa] = useState([]);
+  const [error, setError] = useState(null);
 
-const togglePopup = async () => {
-  if (showPopup) {
-    setShowPopup(false);
-    return;
-  }
-
-  if (!api || !stashAddress) return;
-
-  setShowPopup(true);
-  setLoading(true);
-
-  try {
-    if (!cachedQueuedKeys) {
-      const rawQueued = await api.query.session.queuedKeys();
-      cachedQueuedKeys = rawQueued.toJSON();
+  const togglePopup = async () => {
+    if (showPopup) {
+      setShowPopup(false);
+      return;
     }
 
-    const stashDecoded = decodeAddress(stashAddress);
+    if (!api || !stashAddress) {
+      setError('API or stash address not available.');
+      return;
+    }
 
-    const foundQueued = cachedQueuedKeys.find(([addr]) => {
-      try {
-        const decoded = decodeAddress(addr);
-        return u8aEq(decoded, stashDecoded);
-      } catch {
-        return false;
+    setLoading(true);
+    setError(null);
+    setShowPopup(true);
+
+    try {
+      // Fetch queued keys (cache)
+      if (!cachedQueuedKeys) {
+        const rawQueued = await api.query.session.queuedKeys();
+        cachedQueuedKeys = rawQueued.toJSON();
       }
-    });
 
-    setQueuedKeyData(foundQueued?.[1] ?? null);
+      const stashDecoded = decodeAddress(stashAddress);
+      const foundQueued = cachedQueuedKeys.find(([addr]) => {
+        try {
+          return u8aEq(decodeAddress(addr), stashDecoded);
+        } catch {
+          return false;
+        }
+      });
+      setQueuedKeyData(foundQueued?.[1] ?? null);
 
-    const nextKeys = await api.query.session.nextKeys(stashAddress);
-    setNextKeyData(nextKeys?.toJSON() ?? null);
-  } catch (err) {
-    console.error('Failed to fetch validator keys:', err);
-  } finally {
-    setLoading(false);
-  }
-};
+      // Fetch next keys
+      const next = await api.query.session.nextKeys(stashAddress);
+      setNextKeyData(next?.toJSON() ?? null);
 
-  const renderKeyRow = (label, keyData) => (
-    <div className="mb-2">
-      <strong>{label}:</strong><br />
-      grandpa: {keyData?.grandpa || 'N/A'}<br />
-      imonline: {keyData?.imonline || 'N/A'}
-    </div>
+      // Fetch active grandpa authorities using runtime API call
+      const grandpaAuthorities = await api.call.grandpaApi.grandpaAuthorities();
+
+      const networkPrefix = 71; // adjust to your chain's SS58 prefix
+
+      const list = grandpaAuthorities.map(([authorityId]) => {
+        const pubKeyHex = u8aToHex(authorityId);
+        const address = encodeAddress(authorityId, networkPrefix);
+        return { address, pubKey: pubKeyHex };
+      });
+
+      setActiveGrandpa(list);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch validator keys. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+const renderActive = () => {
+  if (!queuedKeyData || !nextKeyData) return null;
+
+  const matchingGrandpaKeyQueued = queuedKeyData.grandpa; // Get grandpa key from queued keys
+  const matchingGrandpaKeyNext = nextKeyData.grandpa; // Get grandpa key from next keys
+
+  // Find an active grandpa authority that matches either the queued or next grandpa key
+  const matchingAuthority = activeGrandpa.find(({ pubKey }) => 
+    pubKey === matchingGrandpaKeyQueued || pubKey === matchingGrandpaKeyNext
   );
 
-  // Reset key data when stashAddress changes
+  if (!matchingAuthority) return null; // No matching authority found
+
+  return (
+    <div className="mb-1">
+       <span className="text-green-400">
+        <strong>Active GRANDPA voter:</strong>
+        </span><br />
+      <div className="text-white">
+        address: {matchingAuthority.address}<br />
+        pub key: {matchingAuthority.pubKey}<br /><br />
+      </div>
+    </div>
+  );
+};
+
+
+const renderRow = (label, kd) => {
+  if (!kd) return null;
+
+  // Decode the stash address to get the public key
+  const stashDecoded = decodeAddress(stashAddress);
+  const stashPubKeyHex = u8aToHex(stashDecoded); // Convert to hex for comparison
+
+  // Check for mismatches
+  const mismatchGrandpa = activeGrandpa.every(a => a.pubKey !== kd.grandpa);
+  const mismatchImonline = kd.imonline !== stashPubKeyHex;
+
+  // Determine colors based on mismatches
+  const grandpaColor = mismatchGrandpa ? 'text-orange-400' : 'text-white';
+  const imonlineColor = mismatchImonline ? 'text-red-500' : 'text-white';
+
+  // Determine titles based on mismatches
+  const grandpaTitile = mismatchGrandpa ? 'Is not an active GRANDPA voter' : 'OK';
+  const imonlineTitle = mismatchImonline ? 'Incorect ImOnline Key' : 'OK';
+
+  return (
+    <div className="mb-2">
+      <strong>{label}:</strong><br/>
+      grandpa: <span className={grandpaColor} title={grandpaTitile}>{kd.grandpa || 'N/A'}</span><br/>
+      imonline: <span className={imonlineColor} title={imonlineTitle}>{kd.imonline || 'N/A'}</span>
+    </div>
+  );
+};
+
+  // Reset on stashAddress change
   useEffect(() => {
-    if (stashAddress) {
-      setQueuedKeyData(null);
-      setNextKeyData(null);
-    }
+    setQueuedKeyData(null);
+    setNextKeyData(null);
+    setActiveGrandpa([]);
+    setError(null);
   }, [stashAddress]);
 
   return (
     <div className="mt-2">
       <button
-  onClick={togglePopup}
-  className="text-xs text-indigo-400 hover:underline"
-  disabled={loading}
-  aria-controls="validator-keys-popup"
->
-  {showPopup ? '🔑 Keys' : '🔑 Keys'}
-</button>
-
+        className="text-xs text-indigo-400 hover:underline"
+        onClick={togglePopup}
+        disabled={loading}
+      >
+        {showPopup ? '🔑 Hide' : '🔑 Keys'}
+      </button>
 
       {showPopup && (
         <div className="mt-2 text-xs bg-gray-800 border text-white p-3 rounded shadow-md">
-          {loading ? (
-            <div>Loading...</div>
-          ) : (
+          {loading && <div>Loading...</div>}
+          {error && <div className="text-red-500 mb-2">{error}</div>}
+          {!loading && !error && (
             <>
-              {renderKeyRow('Queued Keys', queuedKeyData)}
-              {renderKeyRow('Next Keys', nextKeyData)}
+              {renderActive()}
+              {renderRow('+ Queued Keys', queuedKeyData)}
+              {renderRow('→ Next Keys', nextKeyData)}
             </>
           )}
         </div>
@@ -96,3 +159,4 @@ const togglePopup = async () => {
 };
 
 export default ValidatorKeysPopup;
+
