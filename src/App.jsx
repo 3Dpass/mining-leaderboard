@@ -30,7 +30,7 @@ const App = () => {
           <div className="relative text-left">
             <span className="cursor-pointer group inline-block">
              📶
-            <span className="absolute right-0 top-full mt-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-lg z-10 whitespace-nowrap">
+            <span className="absolute right-0 top-full mt-2 hidden group-hover:block bg-gray-800 text-green-400 text-xs rounded px-2 py-1 shadow-lg z-10 whitespace-nowrap border">
              Conections:<br />
              - RPC: {config.websocketEndpoint} <br />
              - Explorer: {config.API_BASE}
