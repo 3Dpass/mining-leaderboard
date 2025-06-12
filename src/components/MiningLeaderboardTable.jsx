@@ -335,7 +335,7 @@ useEffect(() => {
 
       <h1 className="text-3xl font-bold text-center">⛏️ 24h Mining Leaderboard</h1>
       <div className="text-center text-sm text-gray-500">
-        Block Target Time: 60 sec (24h ~ 1440 blocks)
+        Target Block Time: 60 sec (24h ~ 1440 blocks)
       </div>
 
       <div className="flex space-x-8">
