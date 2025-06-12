@@ -36,6 +36,9 @@ Features:
     - "Unlock" – `valiidatorSet.unlock(amount)` method to unlock collateral funds
     - "Claim" – `rewards.unlock()` method to claim all vested rewards available
     - "Penalty" – `validatorSet.payPenalty()` to pay off current penalties
+- Network events notifications:
+    - "imOnline" - Heartbeat received, Offline detection
+    - "Session" - New session initiation
       
 <img width="985" alt="validator_dashboard-min" src="https://github.com/user-attachments/assets/cb7e0b5f-0eda-450e-a994-e3ea05d90c2f" />
 

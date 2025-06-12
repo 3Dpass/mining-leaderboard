@@ -8,6 +8,7 @@ import ValidatorUnlockForm from './ValidatorUnlockForm';
 import ValidatorRewardsUnlockForm from './ValidatorRewardsUnlockForm';
 import ValidatorPayPenaltyForm from './ValidatorPayPenaltyForm';
 import ValidatorKeysPopup from './ValidatorKeysPopup';
+import Notifications from './Notifications'; // Import the notification component
 
 const formatP3D = (value) => (Number(value) / 10 ** 12).toFixed(4);
 const formatP3Dlocked = (value) => (Number(value) / 10 ** 12).toFixed(0);
@@ -293,9 +294,12 @@ const ValidatorTable = () => {
           >
           🚨 Penalty
        </button>
+
+        <div className="text-left">
+          <Notifications api={api} />
+        </div>
     
       </div>
-
         <input
           className="px-4 py-2 rounded bg-gray-700 text-white"
           placeholder="Search address or name"
@@ -310,6 +314,7 @@ const ValidatorTable = () => {
         <p className="text-center text-red-500">{error}</p>
       ) : (
         <div className="overflow-x-auto">
+
           <table className="w-full border-collapse border-t border-b border-gray-700 text-white text-sm">
             <thead>
               <tr className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">
