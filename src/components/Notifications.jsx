@@ -36,7 +36,7 @@ const Notifications = ({ api }) => {
 
           // Handle imOnline.AllGood
           if (section === 'imOnline' && method === 'AllGood') {
-            const message = `✅ All good! No offence was commited during the session.`;
+            const message = `✅ All good! No offence was commited during the session!`;
             addNotification({ type: 'success', message });
           }
 
