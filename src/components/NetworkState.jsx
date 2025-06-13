@@ -73,31 +73,31 @@ const NetworkState = () => {
   }, [api, loadNetworkState]);
 
   if (!networkState) {
-    return <div className="mb-4 w-full max-w-3xl h-[80px] animate-pulse bg-gray-800 border rounded" />;
+    return <div className="mb-1 w-full max-w-4xl h-[80px] animate-pulse bg-gray-800 border border-[0.5px] rounded" />;
   }
 
   const { bestNumber, bestFinalized, timestamp, targetBlockTime, totalIssuance } = networkState;
 
   return (
-    <div className={`border border-[0.5px] grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-4 bg-gray-900 text-white p-4 rounded-md shadow mb-4 ${isLoading ? 'opacity-50' : ''}`}>
+    <div className={`border border-[0.5px] grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-4 bg-gray-900 text-gray-300 p-4 rounded-md shadow mb-1 ${isLoading ? 'opacity-50' : ''}`}>
       <div>
-        <div className="text-xs text-gray-400">Best Block</div>
+        <div className="text-xs text-gray-500">Best Block</div>
         <div className="font-semibold">{bestNumber?.toLocaleString()}</div>
       </div>
       <div>
-        <div className="text-xs text-gray-400">Finalized</div>
+        <div className="text-xs text-gray-500">Finalized</div>
         <div className="font-semibold">{bestFinalized?.toLocaleString()}</div>
       </div>
       <div>
-        <div className="text-xs text-gray-400">Latest Block</div>
+        <div className="text-xs text-gray-500">Latest Block</div>
         <div className="font-semibold"><TimeAgo date={timestamp} live={true} /></div>
       </div>
       <div>
-        <div className="text-xs text-gray-400">Target Time</div>
+        <div className="text-xs text-gray-500">Target Time</div>
         <div className="font-semibold">{targetBlockTime}s</div>
       </div>
       <div>
-        <div className="text-xs text-gray-400">Total Issuance</div>
+        <div className="text-xs text-gray-500">Total Issuance</div>
         <div className="font-semibold">{formatMP3D(totalIssuance)}</div>
       </div>
     </div>

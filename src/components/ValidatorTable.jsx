@@ -226,8 +226,6 @@ const ValidatorTable = () => {
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <h2 className="text-3xl font-bold text-center">🛡️ Validator Set</h2>
-
-
       <div className="flex justify-center space-x-4 mb-4">
         {['Active', 'Inactive', 'Candidates', 'All'].map(opt => (
           <button key={opt} onClick={() => setFilter(opt)}
