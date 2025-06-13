@@ -39,6 +39,7 @@ Features:
 - Network events notifications:
     - "imOnline" - Heartbeat received, Offline detection
     - "Session" - New session initiation
+    - "ValidatorSet" - all events
       
 <img width="985" alt="validator_dashboard-min" src="https://github.com/user-attachments/assets/cb7e0b5f-0eda-450e-a994-e3ea05d90c2f" />
 
