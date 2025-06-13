@@ -142,14 +142,14 @@ const renderRow = (label, kd) => {
       </button>
 
       {showPopup && (
-        <div className="mt-2 text-xs bg-gray-800 border text-white p-3 rounded shadow-md">
+        <div className="mt-2 text-xs bg-gray-800 border border-[0.5px] text-white p-3 rounded shadow-md">
           {loading && <div>Loading...</div>}
           {error && <div className="text-red-500 mb-2">{error}</div>}
           {!loading && !error && (
             <>
               {renderActive()}
-              {renderRow('+ Queued Keys', queuedKeyData)}
-              {renderRow('→ Next Keys', nextKeyData)}
+              {renderRow('↑ Queued Keys', queuedKeyData)}
+              {renderRow('↑ Next Keys', nextKeyData)}
             </>
           )}
         </div>

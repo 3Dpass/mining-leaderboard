@@ -8,13 +8,13 @@ import config from './config';
 const App = () => {
   const [showMining, setShowMining] = useState(true);
   const [showValidators, setShowValidators] = useState(false);
-  const [miningButtonClass, setMiningButtonClass] = useState('bg-gray-900 text-white');
+  const [miningButtonClass, setMiningButtonClass] = useState('bg-gray-900 text-white font-semibold');
   const [validatorsButtonClass, setValidatorsButtonClass] = useState('bg-gray-900 text-gray-400');
 
   const toggleMining = () => {
     const nextState = !showMining;
     setShowMining(nextState);
-    setMiningButtonClass(nextState ? 'bg-gray-900 text-white' : 'bg-gray-900 text-gray-400');
+    setMiningButtonClass(nextState ? 'bg-gray-900 text-white font-semibold' : 'bg-gray-900 text-gray-400');
     // Turn off Validators when Mining is turned on
     if (nextState) {
       setShowValidators(false);
@@ -25,7 +25,7 @@ const App = () => {
   const toggleValidators = () => {
     const nextState = !showValidators;
     setShowValidators(nextState);
-    setValidatorsButtonClass(nextState ? 'bg-gray-900 text-white' : 'bg-gray-900 text-gray-400');
+    setValidatorsButtonClass(nextState ? 'bg-gray-900 text-white font-semibold' : 'bg-gray-900 text-gray-400');
     // Turn off Mining when Validators is turned on
     if (nextState) {
       setShowMining(false);
