@@ -334,34 +334,34 @@ useEffect(() => {
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <h1 className="text-3xl font-bold text-center">⛏️ 24h Mining Leaderboard</h1>
       <div className="flex space-x-8">
-        <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
+        <div className="flex-1 border border-[0.5px] rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">Author block reward</div>
           <div className="text-2xl font-extrabold">{blockReward ?? '--'}</div>
           <div className="text-sm font-light">P3D per block</div>
         </div>
-        <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
+        <div className="flex-1 border border-[0.5px] rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">Difficulty</div>
           <div className="text-2xl font-extrabold">{difficulty ?? '--'}</div>
           <div className="text-sm font-light">Hashrate: ~ {estimatedHashrate ? formatHashrate(estimatedHashrate) : '--'}</div>
         </div>
-        <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
+        <div className="flex-1 border border-[0.5px] rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">Authors</div>
           <div className="text-2xl font-extrabold">{totalMinersCount > 0 ? totalMinersCount : '--'}</div>
           <div className="text-sm font-light">Last 24h total</div>
         </div>
       </div>
 
-      <div className="border rounded bg-gray-800 px-6 py-3 text-white">
+      <div className="border border-[0.5px] rounded bg-gray-800 px-6 py-3 text-white">
         <h2 className="text-white font-semibold text-lg mb-4">Estimated Hashrate (24h)</h2>
          <HashrateChart data={perBlockHashrate} />
       </div>
 
-      <div className="border rounded bg-gray-800 px-6 py-3 text-white">
+      <div className="border border-[0.5px] rounded bg-gray-800 px-6 py-3 text-white">
         <h2 className="text-white font-semibold text-lg mb-4">Authors Share Chart (24h)</h2>
         <ShareChart data={chartData} />
       </div>
 
-      <div className="border rounded bg-gray-800 px-3 py-3">
+      <div className="border border-[0.5px] rounded bg-gray-800 px-3 py-3">
 
        <div className="mb-4">
          <div className="text-center">

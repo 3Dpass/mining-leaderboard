@@ -38,7 +38,7 @@ const NetworkInfo = () => {
   if (loading) return <p>Network info...</p>;
 
   return (
-    <div className="hidden md:block rounded-lg shadow-md w-fit bg-gray-900 text-xs text-gray-400">
+    <div className="hidden md:block rounded-lg w-fit bg-gray-900 text-xs text-gray-400">
       <p>{info.networkName}</p>
       <p>{info.specName}/{info.specVersion}</p>
     </div>

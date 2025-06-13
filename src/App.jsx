@@ -8,81 +8,83 @@ import config from './config';
 const App = () => {
   const [showMining, setShowMining] = useState(true);
   const [showValidators, setShowValidators] = useState(false);
-  const [miningButtonClass, setMiningButtonClass] = useState('bg-indigo-600');
-  const [validatorsButtonClass, setValidatorsButtonClass] = useState('bg-gray-600');
+  const [miningButtonClass, setMiningButtonClass] = useState('bg-gray-900 text-white');
+  const [validatorsButtonClass, setValidatorsButtonClass] = useState('bg-gray-900 text-gray-400');
 
   const toggleMining = () => {
     const nextState = !showMining;
     setShowMining(nextState);
-    setMiningButtonClass(nextState ? 'bg-indigo-600' : 'bg-gray-500');
+    setMiningButtonClass(nextState ? 'bg-gray-900 text-white' : 'bg-gray-900 text-gray-400');
     // Turn off Validators when Mining is turned on
     if (nextState) {
       setShowValidators(false);
-      setValidatorsButtonClass('bg-gray-500');
+      setValidatorsButtonClass('bg-gray-900 text-gray-400');
     }
   };
 
   const toggleValidators = () => {
     const nextState = !showValidators;
     setShowValidators(nextState);
-    setValidatorsButtonClass(nextState ? 'bg-indigo-600' : 'bg-gray-500');
+    setValidatorsButtonClass(nextState ? 'bg-gray-900 text-white' : 'bg-gray-900 text-gray-400');
     // Turn off Mining when Validators is turned on
     if (nextState) {
       setShowMining(false);
-      setMiningButtonClass('bg-gray-500');
+      setMiningButtonClass('bg-gray-900 text-gray-400');
     }
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-2 space-y-4">
-      <div className="bg-gray-900 text-white p-2 shadow-md">
-        <div className="max-w-8xl mx-auto flex space-x-6 justify-center font-medium text-sm">
-          <img 
-            src="/img/3dpass_logo_white.png" 
-            className="w-6 h-6 hidden sm:block" 
-            alt="3DPass Logo" 
-          />
-          <NetworkInfo />
-          
-          {/* Toggle Buttons */}
-          <button
-            aria-pressed={showMining}
-            onClick={toggleMining}
-            className={`px-3 py-2 rounded ${miningButtonClass} hover:bg-indigo-700 text-white font-semibold text-xs`}
-            aria-label={showMining ? 'Turn off mining board' : 'Turn on mining board'}
-          >
-            {showMining ? 'Mining dashboard' : 'Mining dashboard'}
-          </button>
-          <button
-            aria-pressed={showValidators}
-            onClick={toggleValidators}
-            className={`px-3 py-2 rounded ${validatorsButtonClass} hover:bg-indigo-700 text-white font-semibold text-xs`}
-            aria-label={showValidators ? 'Turn off validator board' : 'Turn on validator board'}
-          >
-            {showValidators ? 'Validator dashboard' : 'Validator dashboard'}
-          </button>
+ <div className="w-full max-w-6xl mx-auto p-2 space-y-4">
+  <div className="bg-gray-900 text-gray-400 p-2 shadow-md">
+    <div className="max-w-8xl mx-auto flex items-center justify-center space-x-6 font-medium text-sm">
+      <img 
+        src="/img/3dpass_logo_white.png" 
+        className="w-6 h-6 hidden sm:block" 
+        alt="3DPass Logo" 
+      />
+      <NetworkInfo />
+      
+      {/* Toggle Buttons */}
+      <button
+        aria-pressed={showMining}
+        onClick={toggleMining}
+        className={`px-1 py-2 rounded ${miningButtonClass} hover:bg-gray-900 hover:underline text-sm`}
+        aria-label={showMining ? 'Turn off mining board' : 'Turn on mining board'}
+      >
+        {showMining ? 'Mining dashboard' : 'Mining dashboard'}
+      </button>
+      <button
+        aria-pressed={showValidators}
+        onClick={toggleValidators}
+        className={`px-1 py-2 rounded ${validatorsButtonClass} hover:bg-gray-900 hover:underline text-sm`}
+        aria-label={showValidators ? 'Turn off validator board' : 'Turn on validator board'}
+      >
+        {showValidators ? 'Validator dashboard' : 'Validator dashboard'}
+      </button>
 
-          <a href="https://wallet.3dpass.org/" target="_blank" rel="noopener noreferrer" className="hover:underline">
-            Wallet
-          </a>
-          <a href="https://3dpscan.xyz/" target="_blank" rel="noopener noreferrer" className="hover:underline">
-            Explorer
-          </a>
-          <a href="https://3dpass.network/" target="_blank" rel="noopener noreferrer" className="hover:underline">
-            Telemetry
-          </a>
-          <div className="relative text-left">
-            <span className="cursor-pointer group inline-block hidden md:block text-gray-400">
-              RPC: 📶
-              <span className="absolute right-0 top-full mt-2 hidden group-hover:block bg-gray-800 text-gray-300 text-xs rounded px-2 py-1 shadow-lg">
-                Connections:<br />
-                - RPC: {config.websocketEndpoint} <br />
-                - Explorer: {config.API_BASE}
-              </span>
-            </span>
-          </div>
-        </div>
-      </div>
+      <a href="https://wallet.3dpass.org/" target="_blank" rel="noopener noreferrer" className="hover:underline">
+        Wallet
+      </a>
+      <a href="https://3dpscan.xyz/" target="_blank" rel="noopener noreferrer" className="hover:underline">
+        Explorer
+      </a>
+      <a href="https://3dpass.network/" target="_blank" rel="noopener noreferrer" className="hover:underline">
+        Telemetry
+      </a>
+     <div className="relative text-left">
+  <span className="cursor-pointer group inline-block hidden md:block text-gray-400">
+    RPC: 📶
+    <span className="absolute right-0 top-full mt-2 hidden group-hover:block bg-gray-800 text-gray-300 text-xs text-left rounded px-2 py-1 shadow-lg min-w-[220px] border border-[0.5px]">
+      Connections:<br />
+      - RPC: {config.websocketEndpoint} <br />
+      - Explorer: {config.API_BASE}
+    </span>
+  </span>
+</div>
+
+    </div>
+  </div>
+
       <div className="w-full max-w-4xl mx-auto p-4 space-y-4">
         <NetworkState />
       </div>

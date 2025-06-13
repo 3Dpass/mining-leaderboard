@@ -236,17 +236,17 @@ const ValidatorTable = () => {
       </div>
 
       <div className="flex space-x-8">
-        <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
+        <div className="flex-1 border border-[0.5px] rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">Validator Reward</div>
           <div className="text-2xl font-extrabold">{blockReward ?? '--'}</div>
           <div className="text-sm font-light">P3D per block</div>
         </div>
-        <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
+        <div className="flex-1 border border-[0.5px] rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">GRANDPA Status</div>
           <div className="text-2xl font-extrabold">{overview.grandpaStatus ?? '--'}</div>
           <div className="text-sm font-light">Set ID #{grandpaSetId ?? '--'}</div>
         </div>
-        <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
+        <div className="flex-1 border border-[0.5px] rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">Active Validators</div>
           <div className="text-2xl font-extrabold">{overview.activeValidatorCount ?? '--'}</div>
           <div className="text-sm font-light">
@@ -258,7 +258,7 @@ const ValidatorTable = () => {
         </div>
       </div>
 
-      <div className="border rounded bg-gray-800 px-3 py-3">   
+      <div className="border border-[0.5px] rounded bg-gray-800 px-3 py-3">   
       <div className="mb-4">
         <div className="text-center">
         <button
