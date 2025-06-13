@@ -334,10 +334,6 @@ useEffect(() => {
     <div className="max-w-4xl mx-auto p-4 space-y-6">
 
       <h1 className="text-3xl font-bold text-center">⛏️ 24h Mining Leaderboard</h1>
-      <div className="text-center text-sm text-gray-500">
-        Target Block Time: 60 sec (24h ~ 1440 blocks)
-      </div>
-
       <div className="flex space-x-8">
         <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">Author block reward</div>

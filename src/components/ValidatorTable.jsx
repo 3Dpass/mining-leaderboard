@@ -187,6 +187,20 @@ const ValidatorTable = () => {
     }
   }, []);
 
+  const [grandpaSetId, setGrandpaSetId] = useState(null);
+
+  useEffect(() => {
+    let unsubscribe;
+
+    if (api) {
+      api.query.grandpa.currentSetId((setId) => {
+        setGrandpaSetId(setId.toString());
+      }).then((unsub) => unsubscribe = unsub);
+    }
+
+    return () => unsubscribe?.();
+  }, [api]);
+
   const filterValidators = useMemo(() => {
     return validators.filter(v =>
       (filter === 'All' || v.status === filter) &&
@@ -212,9 +226,7 @@ const ValidatorTable = () => {
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <h2 className="text-3xl font-bold text-center">🛡️ Validator Set</h2>
-      <div className="text-center text-sm text-gray-500">
-        Session Length: {overview.sessionLength ?? '--'} blocks ~ {overview.sessionLength ? (overview.sessionLength / 60).toFixed(1) : '--'}h
-      </div>
+
 
       <div className="flex justify-center space-x-4 mb-4">
         {['Active', 'Inactive', 'Candidates', 'All'].map(opt => (
@@ -234,12 +246,17 @@ const ValidatorTable = () => {
         <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">GRANDPA Status</div>
           <div className="text-2xl font-extrabold">{overview.grandpaStatus ?? '--'}</div>
-          <div className="text-sm font-light">Finalized #{bestFinalizedBlock.number ?? '--'}</div>
+          <div className="text-sm font-light">Set ID #{grandpaSetId ?? '--'}</div>
         </div>
         <div className="flex-1 border rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">Active Validators</div>
           <div className="text-2xl font-extrabold">{overview.activeValidatorCount ?? '--'}</div>
-          <div className="text-sm font-light">Session #{overview.sessionIndex ?? '--'}</div>
+          <div className="text-sm font-light">
+            Session #{overview.sessionIndex ?? '--'} {" "} 
+            <span className="text-gray-400 text-xs">
+              {overview.sessionLength ?? '--'} blocks
+            </span>
+          </div>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ValidatorTable from './components/ValidatorTable';
 import MiningLeaderboardTable from './components/MiningLeaderboardTable';
 import NetworkInfo from './components/NetworkInfo';
+import NetworkState from './components/NetworkState';
 import config from './config';
 
 const App = () => {
@@ -11,19 +12,21 @@ const App = () => {
   const [validatorsButtonColor, setValidatorsButtonColor] = useState('bg-indigo-600');
 
   const toggleMining = () => {
-    setShowMining(!showMining);
-    setMiningButtonColor(showMining ? 'bg-gray-500' : 'bg-indigo-600'); // Change color on click
-  };
+  const nextState = !showMining;
+  setShowMining(nextState);
+  setMiningButtonColor(nextState ? 'bg-indigo-600' : 'bg-gray-500');
+};
 
-  const toggleValidators = () => {
-    setShowValidators(!showValidators);
-    setValidatorsButtonColor(showValidators ? 'bg-gray-500' : 'bg-indigo-600'); // Change color on click
-  };
+const toggleValidators = () => {
+  const nextState = !showValidators;
+  setShowValidators(nextState);
+  setValidatorsButtonColor(nextState ? 'bg-indigo-600' : 'bg-gray-500');
+};
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-4 space-y-2">
+    <div className="w-full max-w-6xl mx-auto p-4 space-y-4">
       <div className="bg-gray-900 text-white p-4 shadow-md">
-        <div className="max-w-6xl mx-auto flex space-x-6 justify-center font-medium text-sm">
+        <div className="max-w-8xl mx-auto flex space-x-6 justify-center font-medium text-sm">
           <img 
             src="/img/3dpass_logo_white.png" 
             className="w-6 h-6 hidden sm:block" // Tailwind class for width and auto height
@@ -57,16 +60,21 @@ const App = () => {
           </div>
         </div>
       </div>
+      <div className="flex space-x-8 justify-center">
+         <NetworkState />
+         </div>
 
       {/* Toggle Buttons */}
       <div className="flex justify-center space-x-4 mb-4">
         <button
+          aria-pressed={showMining}
           onClick={toggleMining}
           className={`px-4 py-2 rounded ${miningButtonColor} hover:bg-indigo-700 text-white font-semibold`}
         >
           {showMining ? 'Mining Dashboard ON' : 'Mining Dashboard OFF'}
         </button>
         <button
+          aria-pressed={showMining}
           onClick={toggleValidators}
           className={`px-4 py-2 rounded ${validatorsButtonColor} hover:bg-indigo-700 text-white font-semibold`}
         >
