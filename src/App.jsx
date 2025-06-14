@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Button, Alert } from "@blueprintjs/core";
+import "@blueprintjs/core/lib/css/blueprint.css";
+import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+import { usePolkadotApi } from './hooks/usePolkadotApi';
 import ValidatorTable from './components/ValidatorTable';
 import MiningLeaderboardTable from './components/MiningLeaderboardTable';
 import NetworkInfo from './components/NetworkInfo';
 import NetworkState from './components/NetworkState';
-import config from './config';
+import DialogRpcSettings from './components/dialogs/DialogRpcSettings';
 
 const App = () => {
+  const { api, connected, reconnect, error } = usePolkadotApi();
   const [showMining, setShowMining] = useState(true);
   const [showValidators, setShowValidators] = useState(false);
   const [miningButtonClass, setMiningButtonClass] = useState('bg-gray-900 text-white font-semibold');
   const [validatorsButtonClass, setValidatorsButtonClass] = useState('bg-gray-900 text-gray-400');
+  const [open, setOpen] = useState(false);
 
   const toggleMining = () => {
     const nextState = !showMining;
@@ -33,72 +39,108 @@ const App = () => {
     }
   };
 
+  const handleEndpointChange = (newEndpoint) => {
+    console.log("New endpoint:", newEndpoint);
+    reconnect(newEndpoint); // Call the reconnect function with the new endpoint
+    window.location.reload(); // reconnects on page load
+  };
+
   return (
  <div className="w-full max-w-6xl mx-auto p-2 space-y-4">
   <div className="bg-gray-900 text-gray-400 p-2 shadow-md">
-    <div className="max-w-8xl mx-auto flex items-center justify-center space-x-6 font-medium text-sm">
+    <div className="max-w-8xl mx-auto flex items-center justify-center space-x-6 font-medium text-md">
       <img 
         src="/img/3dpass_logo_white.png" 
         className="w-6 h-6 hidden sm:block" 
         alt="3DPass Logo" 
       />
-      <NetworkInfo />
+      <NetworkInfo api={api} connected={connected} />
       
       {/* Toggle Buttons */}
       <button
         aria-pressed={showMining}
         onClick={toggleMining}
-        className={`px-1 py-2 rounded ${miningButtonClass} hover:bg-gray-900 hover:underline text-sm`}
+        className={`px-1 py-2 rounded ${miningButtonClass} hover:bg-gray-900 hover:underline text-md`}
         aria-label={showMining ? 'Turn off mining board' : 'Turn on mining board'}
       >
-        {showMining ? 'Mining dashboard' : 'Mining dashboard'}
+        {showMining ? 'Mining leaderboard' : 'Mining leaderboard'}
       </button>
       <button
         aria-pressed={showValidators}
         onClick={toggleValidators}
-        className={`px-1 py-2 rounded ${validatorsButtonClass} hover:bg-gray-900 hover:underline text-sm`}
+        className={`px-1 py-2 rounded ${validatorsButtonClass} hover:bg-gray-900 hover:underline text-md`}
         aria-label={showValidators ? 'Turn off validator board' : 'Turn on validator board'}
       >
-        {showValidators ? 'Validator dashboard' : 'Validator dashboard'}
+        {showValidators ? 'Validator set' : 'Validator set'}
       </button>
-
-      <a href="https://wallet.3dpass.org/" target="_blank" rel="noopener noreferrer" className="hover:underline">
+      <a 
+        href="https://wallet.3dpass.org/" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="text-gray-400 hover:text-gray-400 hover:bg-gray-900 hover:underline px-1 py-2 rounded"
+      >
         Wallet
       </a>
-      <a href="https://3dpscan.xyz/" target="_blank" rel="noopener noreferrer" className="hover:underline">
+      <a 
+        href="https://3dpscan.xyz/" 
+        target="_blank" rel="noopener noreferrer" 
+        className="text-gray-400 hover:text-gray-400 hover:bg-gray-900 hover:underline px-1 py-2 rounded"
+      >
         Explorer
       </a>
-      <a href="https://3dpass.network/" target="_blank" rel="noopener noreferrer" className="hover:underline">
+      <a 
+        href="https://3dpass.network/" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="text-gray-400 hover:text-gray-400 hover:bg-gray-900 hover:underline px-1 py-2 rounded"
+      >
         Telemetry
       </a>
-     <div className="relative text-left">
-  <span className="cursor-pointer group inline-block hidden md:block text-gray-400">
-    RPC: 📶
-    <span className="absolute right-0 top-full mt-2 hidden group-hover:block bg-gray-800 text-gray-300 text-xs text-left rounded px-2 py-1 shadow-lg min-w-[220px] border border-[0.5px]">
-      Connections:<br />
-      - RPC: {config.websocketEndpoint} <br />
-      - Explorer: {config.API_BASE}
-    </span>
-  </span>
-</div>
-
+      <Button 
+        icon="cog"
+        className="bg-gray-600 hover:bg-blue-700  text-white"
+        onClick={() => setOpen(true)} 
+        minimal 
+      />
+      <DialogRpcSettings
+         isOpen={open}
+         onClose={() => setOpen(false)}
+         onEndpointChange={handleEndpointChange}
+       />
+       {/* Show the error alert 
+        {error && (
+           <Alert
+            isOpen={true}
+            intent="danger"
+            onClose={() => setError(null)}
+            className="custom-rpc-disconnect"
+            style={{
+              backgroundColor: "#1f2937", // bg-gray-900
+              border: "0.5px solid #FFFFFF",
+              borderRadius: "0.375rem" 
+            }} 
+           >
+            {error}
+         </Alert>
+        )}*/}
     </div>
   </div>
 
       <div className="w-full max-w-4xl mx-auto p-4 space-y-4">
-        <NetworkState />
+        <NetworkState api={api} connected={connected} />
       </div>
+
       {/* Mining Content */}
       {showMining && (
         <div>
-          <MiningLeaderboardTable />
+          <MiningLeaderboardTable api={api} connected={connected} />
         </div>
       )}
 
       {/* Validators Content */}
       {showValidators && (
         <div>
-          <ValidatorTable />
+          <ValidatorTable api={api} connected={connected} />
         </div>
       )}
 

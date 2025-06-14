@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { usePolkadotApi } from '../hooks/usePolkadotApi';
+//import { usePolkadotApi } from '../hooks/usePolkadotApi';
 
-const NetworkInfo = () => {
-  const { api, connected } = usePolkadotApi();
+const NetworkInfo = ({ api, connected }) => {
+  //const { api, connected } = usePolkadotApi();
   const [info, setInfo] = useState({
     networkName: '',
     specName: '',

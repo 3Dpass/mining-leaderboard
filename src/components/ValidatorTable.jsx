@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { usePolkadotApi } from '../hooks/usePolkadotApi';
+//import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import ValidatorLockForm from './ValidatorLockForm';
 import SetSessionKeysForm from './SetSessionKeysForm';
 import ValidatorAddForm from './ValidatorAddForm';
@@ -14,9 +14,8 @@ const formatP3D = (value) => (Number(value) / 10 ** 12).toFixed(4);
 const formatP3Dlocked = (value) => (Number(value) / 10 ** 12).toFixed(0);
 
 
-const ValidatorTable = () => {
-  const { api, connected } = usePolkadotApi();
-
+const ValidatorTable = ({ api, connected }) => {
+  //const { api, connected } = usePolkadotApi();
   const [validators, setValidators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(100);
@@ -400,7 +399,7 @@ const ValidatorTable = () => {
           )}
           {showLockModal && (
            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative">
+             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
                 <button
                  onClick={() => setShowLockModal(false)}
                   className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
@@ -414,7 +413,7 @@ const ValidatorTable = () => {
 
           {showAddModal && (
            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative">
+             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
                 <button
                  onClick={() => setShowAddModal(false)}
                   className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
@@ -428,7 +427,7 @@ const ValidatorTable = () => {
 
           {showKeysModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-           <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative">
+           <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
              <SetSessionKeysForm api={api} onClose={() => setShowKeysModal(false)} />
           </div>
          </div>
@@ -436,7 +435,7 @@ const ValidatorTable = () => {
 
          {showRejoinModal && (
            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative">
+             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
                 <button
                  onClick={() => setShowRejoinModal(false)}
                   className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
@@ -450,7 +449,7 @@ const ValidatorTable = () => {
 
            {showUnlockModal && (
            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative">
+             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
                 <button
                  onClick={() => setShowUnlockModal(false)}
                   className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
@@ -464,7 +463,7 @@ const ValidatorTable = () => {
 
           {showRewardsUnlockModal && (
            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative">
+             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
                 <button
                  onClick={() => setShowRewardsUnlockModal(false)}
                   className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
@@ -478,7 +477,7 @@ const ValidatorTable = () => {
 
           {showPayPenaltyModal && (
            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative">
+             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
                 <button
                  onClick={() => setShowPayPenaltyModal(false)}
                   className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"

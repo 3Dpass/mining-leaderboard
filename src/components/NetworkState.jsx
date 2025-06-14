@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { usePolkadotApi } from '../hooks/usePolkadotApi';
+//import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import TimeAgo from 'react-timeago';
 
 function formatMP3D(value) {
@@ -7,8 +7,8 @@ function formatMP3D(value) {
   return (number / 1e18).toFixed(4) + ' MP3D';
 }
 
-const NetworkState = () => {
-  const { api } = usePolkadotApi();
+const NetworkState = ({ api }) => {
+  //const { api } = usePolkadotApi();
   const [networkState, setNetworkState] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
