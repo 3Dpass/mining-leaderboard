@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { useWallet } from '../hooks/useWallet';
-//import { usePolkadotApi } from '../hooks/usePolkadotApi';
 
 const SS58_PREFIX = 71;
 
 const ValidatorRewardsUnlockForm = ({ api }) => {
-  //const { api } = usePolkadotApi();
   const { accounts, account, connect, injector } = useWallet();
 
   const [submitting, setSubmitting] = useState(false);
@@ -16,25 +14,21 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
   const [stillLocked, setStillLocked] = useState(0);
   const [vestingSchedule, setVestingSchedule] = useState([]);
   const [showVesting, setShowVesting] = useState(false);
-  const [balances, setBalances] = useState({}); // State for balances
+  const [balances, setBalances] = useState({});
 
-  // Fetch balances for selected accounts
   useEffect(() => {
     const fetchBalances = async () => {
       if (!api || accounts.length === 0) return;
-
       const newBalances = {};
-
       for (const { address } of accounts) {
         try {
           const { data: { free } } = await api.query.system.account(address);
-          const balance = free.toBn().divn(1e6).toNumber() / 1e6; // Shows in P3D with 6 decimals
+          const balance = free.toBn().divn(1e6).toNumber() / 1e6;
           newBalances[address] = `${balance.toFixed(3)} P3D`;
         } catch (err) {
           newBalances[address] = 'Error';
         }
       }
-
       setBalances(newBalances);
     };
 
@@ -50,14 +44,16 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
         let totalAvailable = 0;
         let totalLocked = 0;
 
-        const currentBlockHeight = (await api.rpc.chain.getBlock()).block.header.number.toNumber();
+        const currentBlockHeight = (await api.rpc.chain.getHeader()).number.toNumber();
 
-        rewardLocks.forEach((amount, blockHeight) => {
-          const amountInP3D = amount.toBn().toNumber() / 1e12;
-          totalLocked += amountInP3D;
+        rewardLocks.entries().forEach(([blockBN, amountBN]) => {
+          const block = blockBN.toNumber();
+          const amount = amountBN.toBn();
+          const amountP3D = Number(amount.toString()) / 1e12;
 
-          if (blockHeight <= currentBlockHeight) {
-            totalAvailable += amountInP3D;
+          totalLocked += amountP3D;
+          if (block <= currentBlockHeight) {
+            totalAvailable += amountP3D;
           }
         });
 
@@ -103,11 +99,15 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
       const rewardLocks = await api.query.rewards.rewardLocks(account);
       const schedule = [];
 
-      rewardLocks.forEach((amount, blockHeight) => {
-        const amountInP3D = amount.toBn().toNumber() / 1e12;
+      rewardLocks.entries().forEach(([blockBN, amountBN]) => {
+        const blockHeight = blockBN.toNumber();
+        const amountRaw = amountBN.toBn().toString();
+        const amountP3D = Number(amountRaw) / 1e12;
+
         schedule.push({
           blockHeight,
-          amount: amountInP3D,
+          amount: amountP3D,
+          raw: amountRaw,
         });
       });
 
@@ -123,7 +123,7 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
     <div className="p-4 rounded text-white space-y-4">
       <h2 className="text-xl font-bold">💰 Claim Vested Rewards</h2>
       <div className="text-left text-sm text-gray-500">
-        <p>Funds are getting available by 10% over ~ 10 days</p>
+        <p>Funds become available gradually over 10 days (10% per day)</p>
       </div>
 
       <div>
@@ -136,7 +136,7 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
           <option value="">Select account</option>
           {accounts.map(({ address, meta }) => {
             const formattedAddress = encodeAddress(address, SS58_PREFIX);
-            const balance = balances[address] || '...'; // Display balance or loading state
+            const balance = balances[address] || '...';
             return (
               <option key={address} value={address}>
                 {meta.name || 'Unknown'} ({formattedAddress.slice(0, 6)}...{formattedAddress.slice(-4)}) - {balance}
@@ -147,9 +147,9 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
       </div>
 
       <div className="text-white">
-        <p>Available: <span className="text-left text-green-500">{available.toFixed(2)}</span> P3D</p>
-        <span className="text-left text-sm text-gray-500">
-          <p>Still Locked: {stillLocked.toFixed(2)} P3D</p>
+        <p>Available: <span className="text-green-500">{available.toFixed(12)}</span> P3D</p>
+        <span className="text-sm text-gray-500">
+          <p>Pending: {stillLocked.toFixed(12)} P3D</p>
         </span>
       </div>
 
@@ -162,23 +162,21 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
           {submitting ? 'Submitting...' : 'Unlock Available'}
         </button>
 
-        {stillLocked > 0 && (
-          <button
-            onClick={fetchVestingSchedule}
-            className="text-blue-400 hover:underline ml-4"
-          >
-            Show Vesting Schedule
-          </button>
-        )}
+        <button
+          onClick={fetchVestingSchedule}
+          className="text-indigo-400 hover:underline ml-4"
+        >
+          📅 Show Vesting Schedule
+        </button>
       </div>
 
       {showVesting && vestingSchedule.length > 0 && (
         <div className="mt-4">
-          <h3 className="text-lg font-bold">Vesting Schedule</h3>
-          <ul className="list-disc pl-5">
-            {vestingSchedule.map(({ blockHeight, amount }) => (
+          <h3 className="text-md font-semibold text-gray-400">Vesting Schedule:</h3>
+          <ul className="list-disc pl-5 text-sm text-gray-300">
+            {vestingSchedule.map(({ blockHeight, amount, raw }) => (
               <li key={blockHeight}>
-                Block Height: {blockHeight}, Amount: {amount.toFixed(2)} P3D
+                Block: {blockHeight}, Available: {/* {raw} , = */}{amount.toFixed(12)} P3D
               </li>
             ))}
           </ul>
@@ -192,4 +190,3 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
 };
 
 export default ValidatorRewardsUnlockForm;
-
