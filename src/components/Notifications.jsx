@@ -133,7 +133,7 @@ const Notifications = ({ api }) => {
   };
 
   return (
-    <div className="-mt-6">
+    <div className="-mt-8">
       <div style={{ marginBottom: '10px' }}>
         <button onClick={toggleNotifications} className="text-xs text-indigo-400 hover:underline">
           {notificationsEnabled ? '🔔 Disable Notifications' : '🔔 Enable Notifications'}
@@ -142,7 +142,7 @@ const Notifications = ({ api }) => {
           🧹 Clear
         </button>
         <button onClick={toggleShowNotifications} style={{ marginLeft: '10px' }} className="text-xs text-gray-500 hover:underline">
-          {showNotifications ? 'Hide' : 'Show'}
+          {showNotifications ? '- Hide' : '+ Show'}
         </button>
       </div>
       {showNotifications && (
@@ -150,17 +150,21 @@ const Notifications = ({ api }) => {
           {notifications.map((notification, index) => (
             <div
               key={index}
-              className={`notification mb-2 p-3 rounded shadow-md border ${
+              className={`notification mb-2 p-3 rounded shadow-md border border-[0.5px] bg-gray-900 ${
                 notification.type === 'error'
-                ? 'bg-red-500'
+                ? 'border-red-300'
                 : notification.type === 'success'
-                ? 'bg-green-900'
+                ? 'border-green-600'
                 : notification.type === 'warning'
-                ? 'bg-yellow-500'
-                : 'bg-gray-800'
-                } text-gray-200 text-xs`}
+                ? 'border-yellow-600'
+                : 'border-gray-500'
+                } text-gray-300 text-xs`}
             >
-              <strong>{notification.timestamp}</strong> – {notification.message}
+              <strong>
+                <span className='text-gray-600'>
+                {notification.timestamp}
+                </span>
+              </strong> – {notification.message}
             </div>
           ))}
         </div>

@@ -33,7 +33,11 @@ export default function DialogRpcSettings({ isOpen, onClose, onEndpointChange })
       isOpen={isOpen}
       onClose={onClose}
       className="custom-rpc-dialog"
-      style={{backgroundColor: "#1f2937" }} // bg-gray-900
+      style={{
+        backgroundColor: "#1f2937", // Dark gray background color
+        border: "2px solid #4B5563", // Set the border width and color
+        borderRadius: "8px", // Rounded corners
+     }}
       canEscapeKeyClose
       canOutsideClickClose
     >
