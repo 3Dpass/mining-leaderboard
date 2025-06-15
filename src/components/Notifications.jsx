@@ -133,7 +133,7 @@ const Notifications = ({ api }) => {
   };
 
   return (
-    <div className="mt-2">
+    <div className="-mt-6">
       <div style={{ marginBottom: '10px' }}>
         <button onClick={toggleNotifications} className="text-xs text-indigo-400 hover:underline">
           {notificationsEnabled ? '🔔 Disable Notifications' : '🔔 Enable Notifications'}
@@ -154,7 +154,7 @@ const Notifications = ({ api }) => {
                 notification.type === 'error'
                 ? 'bg-red-500'
                 : notification.type === 'success'
-                ? 'bg-green-800'
+                ? 'bg-green-900'
                 : notification.type === 'warning'
                 ? 'bg-yellow-500'
                 : 'bg-gray-800'

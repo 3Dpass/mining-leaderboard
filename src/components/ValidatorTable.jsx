@@ -8,7 +8,7 @@ import ValidatorUnlockForm from './ValidatorUnlockForm';
 import ValidatorRewardsUnlockForm from './ValidatorRewardsUnlockForm';
 import ValidatorPayPenaltyForm from './ValidatorPayPenaltyForm';
 import ValidatorKeysPopup from './ValidatorKeysPopup';
-import Notifications from './Notifications'; // Import the notification component
+// import Notifications from './Notifications'; // Import the notification component
 
 const formatP3D = (value) => (Number(value) / 10 ** 12).toFixed(4);
 const formatP3Dlocked = (value) => (Number(value) / 10 ** 12).toFixed(0);
@@ -309,9 +309,9 @@ const ValidatorTable = ({ api, connected }) => {
           🚨 Penalty
        </button>
 
-        <div className="text-left">
+        {/*<div className="text-left">
           <Notifications api={api} />
-        </div>
+        </div>*/}
     
       </div>
         <input

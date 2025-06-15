@@ -8,6 +8,7 @@ import MiningLeaderboardTable from './components/MiningLeaderboardTable';
 import NetworkInfo from './components/NetworkInfo';
 import NetworkState from './components/NetworkState';
 import DialogRpcSettings from './components/dialogs/DialogRpcSettings';
+import Notifications from './components//Notifications'; // Import the notification component
 
 const App = () => {
   const { api, connected, reconnect, error } = usePolkadotApi();
@@ -128,6 +129,10 @@ const App = () => {
 
       <div className="w-full max-w-4xl mx-auto p-4 space-y-4">
         <NetworkState api={api} connected={connected} />
+      </div>
+
+      <div className="w-full text-left max-w-4xl mx-auto p-1">
+        <Notifications api={api} />
       </div>
 
       {/* Mining Content */}
