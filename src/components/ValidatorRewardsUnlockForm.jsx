@@ -147,7 +147,7 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
       </div>
 
       <div className="text-white">
-        <p>Available: <span className="text-green-500">{available.toFixed(12)}</span> P3D</p>
+        <p>To unlock: <span className="text-green-500">{available.toFixed(12)}</span> P3D</p>
         <span className="text-sm text-gray-500">
           <p>Pending: {stillLocked.toFixed(12)} P3D</p>
         </span>
@@ -159,7 +159,7 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
           onClick={handleSubmit}
           className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-white"
         >
-          {submitting ? 'Submitting...' : 'Unlock Available'}
+          {submitting ? 'Submitting...' : 'Unlock'}
         </button>
 
         <button
@@ -171,17 +171,24 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
       </div>
 
       {showVesting && vestingSchedule.length > 0 && (
-        <div className="mt-4">
-          <h3 className="text-md font-semibold text-gray-400">Vesting Schedule:</h3>
-          <ul className="list-disc pl-5 text-sm text-gray-300">
-            {vestingSchedule.map(({ blockHeight, amount, raw }) => (
-              <li key={blockHeight}>
-                Block: {blockHeight}, Available: {/* {raw} , = */}{amount.toFixed(12)} P3D
-              </li>
+       <div className="mt-4">
+        <h3 className="text-md font-semibold text-gray-400">Vesting Schedule (#block height → to unlock):</h3>
+       <div
+         className="max-h-60 overflow-auto border border-gray-600 rounded p-2"
+         style={{ maxHeight: '300px' }} // Set a fixed height
+        >
+         <ul style={{ listStyleType: 'none', paddingLeft: '0' }}
+             className="list-disc pl-5 text-sm text-gray-300"
+         >
+           {vestingSchedule.map(({ blockHeight, amount }) => (
+             <li key={blockHeight}>
+                 #{blockHeight} → {amount.toFixed(12)} P3D
+             </li>
             ))}
-          </ul>
-        </div>
-      )}
+         </ul>
+       </div>
+    </div>
+   )}
 
       {txHash && <p className="text-green-400">✅ Tx Sent: {txHash.slice(0, 46)}...</p>}
       {error && <p className="text-red-400 text-sm">❌ Error: {error}</p>}
