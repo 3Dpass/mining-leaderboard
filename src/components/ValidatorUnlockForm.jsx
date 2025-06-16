@@ -2,25 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { BN } from '@polkadot/util';
 import { formatBalance } from '@polkadot/util';
 import { encodeAddress } from '@polkadot/util-crypto';
-//import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import { useWallet } from '../hooks/useWallet';
-
-const PREFIX = 71; // SS58 for 3DPass
-formatBalance.setDefaults({ decimals: 12, unit: 'P3D' });
+import config from '../config';
 
 // Helper to safely convert decimal strings to BN
 const toBnP3D = (val) => {
   const parts = val.split('.');
   const whole = parts[0] || '0';
   const decimal = parts[1] || '';
-  const padded = decimal.padEnd(12, '0').slice(0, 12);
+  const padded = decimal.padEnd(config.FORMAT_BALANCE.decimals, '0').slice(0, config.FORMAT_BALANCE.decimals);
   return new BN(whole + padded);
 };
 
 const ValidatorUnlockForm = ({ api }) => {
-  // const { api } = usePolkadotApi();
   const { accounts, account, connect, injector } = useWallet();
-
   const [amount, setAmount] = useState('');
   const [tip, setTip] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -114,7 +109,7 @@ const ValidatorUnlockForm = ({ api }) => {
         >
           <option value="" disabled>Select account</option>
           {accounts.map(({ address, meta }) => {
-            const formatted = encodeAddress(address, PREFIX);
+            const formatted = encodeAddress(address, config.SS58_PREFIX);
             const balance = balances[address] ?? '...';
             return (
               <option key={address} value={address}>

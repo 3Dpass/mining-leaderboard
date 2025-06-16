@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import { u8aEq, u8aToHex } from '@polkadot/util';
+import config from '../config';
 
 let cachedQueuedKeys = null;
 
@@ -51,11 +52,11 @@ const ValidatorKeysPopup = ({ api, stashAddress }) => {
       // Fetch active grandpa authorities using runtime API call
       const grandpaAuthorities = await api.call.grandpaApi.grandpaAuthorities();
 
-      const networkPrefix = 71; // adjust to your chain's SS58 prefix
+      const networkPrefix = config.SS58_PREFIX;
 
       const list = grandpaAuthorities.map(([authorityId]) => {
         const pubKeyHex = u8aToHex(authorityId);
-        const address = encodeAddress(authorityId, networkPrefix);
+        const address = encodeAddress(authorityId, config.SS58_PREFIX);
         return { address, pubKey: pubKeyHex };
       });
 

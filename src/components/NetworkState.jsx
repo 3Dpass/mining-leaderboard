@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
-//import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import TimeAgo from 'react-timeago';
+import config from '../config';
 
 function formatMP3D(value) {
   const number = typeof value === 'bigint' ? Number(value) : parseFloat(value);
-  return (number / 1e18).toFixed(4) + ' MP3D';
+  // First convert to P3D (divide by 10^12), then to millions (divide by 10^6)
+  const inMillions = (number / 10 ** config.BALANCE_FORMAT.DEFAULT_DECIMALS) / 1e6;
+  return inMillions.toFixed(config.BALANCE_FORMAT.MP3D_DECIMALS) + ' M' + config.FORMAT_BALANCE.unit;
 }
 
 const NetworkState = ({ api }) => {
-  //const { api } = usePolkadotApi();
   const [networkState, setNetworkState] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 

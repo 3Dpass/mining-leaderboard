@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { useWallet } from '../hooks/useWallet';
-
-const SS58_PREFIX = 71;
+import config from '../config';
 
 const ValidatorRewardsUnlockForm = ({ api }) => {
   const { accounts, account, connect, injector } = useWallet();
@@ -23,8 +22,8 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
       for (const { address } of accounts) {
         try {
           const { data: { free } } = await api.query.system.account(address);
-          const balance = free.toBn().divn(1e6).toNumber() / 1e6;
-          newBalances[address] = `${balance.toFixed(3)} P3D`;
+          const balance = Number(free.toBigInt()) / (10 ** config.FORMAT_BALANCE.decimals);
+          newBalances[address] = `${balance.toLocaleString(undefined, { minimumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS, maximumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS })} ${config.FORMAT_BALANCE.unit}`;
         } catch (err) {
           newBalances[address] = 'Error';
         }
@@ -135,7 +134,7 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
         >
           <option value="">Select account</option>
           {accounts.map(({ address, meta }) => {
-            const formattedAddress = encodeAddress(address, SS58_PREFIX);
+            const formattedAddress = encodeAddress(address, config.SS58_PREFIX);
             const balance = balances[address] || '...';
             return (
               <option key={address} value={address}>
@@ -147,9 +146,9 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
       </div>
 
       <div className="text-white">
-        <p>To unlock: <span className="text-green-500">{available.toFixed(12)}</span> P3D</p>
+        <p>To unlock: <span className="text-green-500">{available.toFixed(config.BALANCE_FORMAT.VESTING_DECIMALS)}</span> {config.FORMAT_BALANCE.unit}</p>
         <span className="text-sm text-gray-500">
-          <p>Pending: {stillLocked.toFixed(12)} P3D</p>
+          <p>Pending: {stillLocked.toFixed(config.BALANCE_FORMAT.VESTING_DECIMALS)} {config.FORMAT_BALANCE.unit}</p>
         </span>
       </div>
 
@@ -182,7 +181,7 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
          >
            {vestingSchedule.map(({ blockHeight, amount }) => (
              <li key={blockHeight}>
-                 #{blockHeight} → {amount.toFixed(12)} P3D
+                 #{blockHeight} → {amount.toFixed(config.BALANCE_FORMAT.VESTING_DECIMALS)} {config.FORMAT_BALANCE.unit}
              </li>
             ))}
          </ul>

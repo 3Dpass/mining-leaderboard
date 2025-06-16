@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
-
-const SS58_PREFIX = 71;
+import config from '../config';
 
 const Notifications = ({ api }) => {
   const [notifications, setNotifications] = useState([]);
@@ -18,8 +17,8 @@ const Notifications = ({ api }) => {
         events.forEach(({ event }) => {
           const { section, method, data } = event;
 
-          const getAccount = (idx = 0) => encodeAddress(data[idx].toU8a(), SS58_PREFIX);
-          const getBalance = (idx) => (data[idx].toBigInt() / 10n ** 18n).toFixed(4);
+          const getAccount = (idx = 0) => encodeAddress(data[idx].toU8a(), config.SS58_PREFIX);
+          const getBalance = (idx) => (data[idx].toBigInt() / BigInt(10 ** config.BALANCE_FORMAT.DEFAULT_DECIMALS)).toFixed(config.BALANCE_FORMAT.DISPLAY_DECIMALS);
 
           if (section === 'imOnline') {
             if (method === 'HeartbeatReceived') {
@@ -142,7 +141,7 @@ const Notifications = ({ api }) => {
           🧹 Clear
         </button>
         <button onClick={toggleShowNotifications} style={{ marginLeft: '10px' }} className="text-xs text-gray-500 hover:underline">
-          {showNotifications ? '- Hide' : '+ Show'}
+          {showNotifications ? '(-) Hide' : '(+) Show'}
         </button>
       </div>
       {showNotifications && (

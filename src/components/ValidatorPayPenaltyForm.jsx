@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { useWallet } from '../hooks/useWallet';
-// import { usePolkadotApi } from '../hooks/usePolkadotApi';
-
-const SS58_PREFIX = 71;
+import config from '../config';
 
 const ValidatorPayPenaltyForm = ({ api }) => {
-  // const { api } = usePolkadotApi();
   const { accounts, account, connect, injector } = useWallet();
 
   const [penaltyAmount, setPenaltyAmount] = useState(0);
@@ -25,9 +22,10 @@ const ValidatorPayPenaltyForm = ({ api }) => {
       for (const { address } of accounts) {
         try {
           const { data: { free } } = await api.query.system.account(address);
-          const balance = free.toBn().divn(1e6).toNumber() / 1e6; // Shows in P3D with 6 decimals
-          newBalances[address] = `${balance.toFixed(3)} P3D`;
+          const balance = Number(free.toBigInt()) / (10 ** config.FORMAT_BALANCE.decimals);
+          newBalances[address] = `${balance.toLocaleString(undefined, { minimumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS, maximumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS })} ${config.FORMAT_BALANCE.unit}`;
         } catch (err) {
+          console.error('Error fetching balance:', err);
           newBalances[address] = 'Error';
         }
       }
@@ -47,7 +45,8 @@ const ValidatorPayPenaltyForm = ({ api }) => {
         const penaltyOption = await api.query.validatorSet.penalty(account);
         if (penaltyOption.isSome) {
           const penalty = penaltyOption.unwrap().toBn();
-          setPenaltyAmount(penalty.divn(1e6).toNumber() / 1e6); // show with 6 decimals
+          // Convert to P3D with 6 decimals
+          setPenaltyAmount(penalty.divn(1e6).toNumber() / 1e6);
         } else {
           setPenaltyAmount(0);
         }
@@ -112,7 +111,7 @@ const ValidatorPayPenaltyForm = ({ api }) => {
         >
           <option value="">Select account</option>
           {accounts.map(({ address, meta }) => {
-            const displayAddr = encodeAddress(address, SS58_PREFIX).slice(0, 5) + '…';
+            const displayAddr = encodeAddress(address, config.SS58_PREFIX).slice(0, 5) + '…';
             const label = `${meta.name || 'Unknown'} (${displayAddr}) - ${balances[address] || '...'}`;
 
             return (
@@ -127,7 +126,7 @@ const ValidatorPayPenaltyForm = ({ api }) => {
       <div className="text-sm text-gray-300">
         Penalties:{' '}
         <span className={penaltyAmount > 0 ? 'text-yellow-400' : 'text-green-400'}>
-          {penaltyAmount.toFixed(6)} P3D
+          {penaltyAmount.toFixed(config.BALANCE_FORMAT.DEFAULT_DECIMALS)} {config.FORMAT_BALANCE.unit}
         </span>
       </div>
 

@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-// import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import { useWallet } from '../hooks/useWallet';
 import { encodeAddress } from '@polkadot/util-crypto';
-
-const SS58_PREFIX = 71;
+import config from '../config';
 
 const RejoinValidatorForm = ({ api }) => {
- // const { api } = usePolkadotApi();
   const { accounts, account, connect, injector } = useWallet();
 
   const [submitting, setSubmitting] = useState(false);
@@ -24,9 +21,10 @@ const RejoinValidatorForm = ({ api }) => {
       for (const { address } of accounts) {
         try {
           const { data: { free } } = await api.query.system.account(address);
-          const balance = free.toBn().divn(1e6).toNumber() / 1e6; // Shows in P3D with 6 decimals
-          newBalances[address] = `${balance.toFixed(3)} P3D`;
+          const balance = Number(free.toBigInt()) / (10 ** config.FORMAT_BALANCE.decimals);
+          newBalances[address] = `${balance.toLocaleString(undefined, { minimumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS, maximumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS })} ${config.FORMAT_BALANCE.unit}`;
         } catch (err) {
+          console.error('Error fetching balance:', err);
           newBalances[address] = 'Error';
         }
       }
@@ -94,7 +92,7 @@ const RejoinValidatorForm = ({ api }) => {
   >
     <option value="">Select account</option>
     {accounts.map((acc) => {
-      const address = encodeAddress(acc.address, SS58_PREFIX);
+      const address = encodeAddress(acc.address, config.SS58_PREFIX);
       return (
         <option key={acc.address} value={acc.address}>
           {acc.meta.name || 'Unknown'} ({address.slice(0, 6)}...{address.slice(-4)}) - {balances[acc.address] || '...'}
@@ -110,7 +108,7 @@ const RejoinValidatorForm = ({ api }) => {
         onClick={handleSubmit}
         className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-white"
       >
-        {submitting ? 'Submitting...' : 'Rejoin as Validator'}
+        {submitting ? 'Submitting...' : 'Rejoin'}
       </button>
 
            {txHash && <p className="text-green-400">✅ Tx Sent: {txHash.slice(0, 46)}...</p>}

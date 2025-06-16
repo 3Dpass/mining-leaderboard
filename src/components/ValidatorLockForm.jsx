@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { BN } from '@polkadot/util';
 import { encodeAddress } from '@polkadot/util-crypto';
-// import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import { useWallet } from '../hooks/useWallet';
-
-const SS58_PREFIX = 71;
+import config from '../config';
 
 const ValidatorLockForm = ({ api }) => {
-  // const { api } = usePolkadotApi();
   const { accounts, account, connect, injector } = useWallet();
 
   const [until, setUntil] = useState('');
@@ -27,8 +24,8 @@ const ValidatorLockForm = ({ api }) => {
       for (const { address } of accounts) {
         try {
           const { data: { free } } = await api.query.system.account(address);
-          const balance = free.toBn().divn(1e6).toNumber() / 1e6; // Shows in P3D with 6 decimals
-          newBalances[address] = `${balance.toFixed(3)} P3D`;
+          const balance = Number(free.toBigInt()) / (10 ** config.FORMAT_BALANCE.decimals);
+          newBalances[address] = `${balance.toLocaleString(undefined, { minimumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS, maximumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS })} ${config.FORMAT_BALANCE.unit}`;
         } catch (err) {
           newBalances[address] = 'Error';
         }
@@ -118,7 +115,7 @@ const ValidatorLockForm = ({ api }) => {
         >
           <option value="">Select account</option>
           {accounts.map((acc) => {
-            const formatted = encodeAddress(acc.address, SS58_PREFIX);
+            const formatted = encodeAddress(acc.address, config.SS58_PREFIX);
             const balance = balances[acc.address] || '...'; // Display balance or loading state
             return (
               <option key={acc.address} value={acc.address}>

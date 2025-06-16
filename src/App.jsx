@@ -108,7 +108,7 @@ const App = () => {
          onClose={() => setOpen(false)}
          onEndpointChange={handleEndpointChange}
        />
-       {/* Show the error alert 
+       {/* Show the error alert if you'd like to handle connections errors
         {error && (
            <Alert
             isOpen={true}

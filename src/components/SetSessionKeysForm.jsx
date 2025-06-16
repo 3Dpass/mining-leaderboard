@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
-// import { usePolkadotApi } from '../hooks/usePolkadotApi';
 import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp';
 import { encodeAddress } from '@polkadot/util-crypto';
+import config from '../config';
 
 const SetSessionKeysForm = ({ api, onClose }) => {
-  // const { api } = usePolkadotApi();
-
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState('');
   const [grandpaKey, setGrandpaKey] = useState('0x');
@@ -35,8 +33,8 @@ const SetSessionKeysForm = ({ api, onClose }) => {
 
       try {
         const { data: { free } } = await api.query.system.account(selectedAccount.address);
-        const balance = free.toBn().divn(1e6).toNumber() / 1e6; // Convert to P3D with 6 decimals
-        setP3dBalance(`${balance.toFixed(3)} P3D`);
+        const balance = Number(free.toBigInt()) / (10 ** config.FORMAT_BALANCE.decimals);
+        setP3dBalance(`${balance.toLocaleString(undefined, { minimumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS, maximumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS })} ${config.FORMAT_BALANCE.unit}`);
       } catch (error) {
         console.error('Error fetching P3D balance:', error);
         setP3dBalance('Error fetching balance');
@@ -118,7 +116,7 @@ const SetSessionKeysForm = ({ api, onClose }) => {
           >
             <option value="">-- Select Account --</option>
             {accounts.map(account => {
-              const formatted = encodeAddress(account.address, 71);
+              const formatted = encodeAddress(account.address, config.SS58_PREFIX);
               const preview = `${formatted.slice(0, 4)}...${formatted.slice(-4)}`;
               const name = account.meta?.name || 'Unknown';
               const balance = p3dBalance && selectedAccount?.address === account.address ? p3dBalance : '...'; // Display balance or loading state

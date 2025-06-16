@@ -8,18 +8,19 @@ import ValidatorUnlockForm from './ValidatorUnlockForm';
 import ValidatorRewardsUnlockForm from './ValidatorRewardsUnlockForm';
 import ValidatorPayPenaltyForm from './ValidatorPayPenaltyForm';
 import ValidatorKeysPopup from './ValidatorKeysPopup';
-// import Notifications from './Notifications'; // Import the notification component
+import config from '../config';
 
-const formatP3D = (value) => (Number(value) / 10 ** 12).toFixed(4);
-const formatP3Dlocked = (value) => (Number(value) / 10 ** 12).toFixed(0);
+const formatP3D = (value) => (Number(value) / 10 ** config.BALANCE_FORMAT.DEFAULT_DECIMALS).toFixed(config.BALANCE_FORMAT.DISPLAY_DECIMALS);
+const formatP3Dlocked = (value) => (Number(value) / 10 ** config.BALANCE_FORMAT.DEFAULT_DECIMALS).toFixed(config.BALANCE_FORMAT.LOCKED_DECIMALS);
 
 
 const ValidatorTable = ({ api, connected }) => {
-  //const { api, connected } = usePolkadotApi();
   const [validators, setValidators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(100);
   const [error, setError] = useState(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true); // New state for initial load
+  const [isRefreshing, setIsRefreshing] = useState(false); // New state for refresh indicator
 
   const [overview, setOverview] = useState({
     sessionIndex: null,
@@ -62,9 +63,14 @@ const ValidatorTable = ({ api, connected }) => {
     }
   }, []);
 
-  const fetchValidators = useCallback(async (api) => {
+  const fetchValidators = useCallback(async (api, isRefresh = false) => {
     try {
-      setLoading(true);
+      if (!isRefresh) {
+        setIsInitialLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
+
       const [
         sessionIndex,
         grandpaState,
@@ -150,7 +156,11 @@ const ValidatorTable = ({ api, connected }) => {
       setError('Failed to load validator data.');
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!isRefresh) {
+        setIsInitialLoading(false);
+      } else {
+        setIsRefreshing(false);
+      }
     }
   }, [fetchIdentity]);
 
@@ -212,13 +222,17 @@ const ValidatorTable = ({ api, connected }) => {
     if (!api || !connected) return;
 
     const load = async () => {
-      await fetchValidators(api);
+      await fetchValidators(api, false); // Initial load
       await fetchBlockReward(api);
       await fetchBestFinalizedBlock(api);
     };
 
     load();
-    const interval = setInterval(load, 10 * 60 * 1000);
+    const interval = setInterval(async () => {
+      await fetchValidators(api, true); // Refresh with isRefresh=true
+      await fetchBlockReward(api);
+      await fetchBestFinalizedBlock(api);
+    }, 6 * 60 * 1000);
     return () => clearInterval(interval);
   }, [api, connected, fetchValidators, fetchBlockReward, fetchBestFinalizedBlock]);
 
@@ -308,10 +322,6 @@ const ValidatorTable = ({ api, connected }) => {
           >
           🚨 Penalty
        </button>
-
-        {/*<div className="text-left">
-          <Notifications api={api} />
-        </div>*/}
     
       </div>
         <input
@@ -322,13 +332,18 @@ const ValidatorTable = ({ api, connected }) => {
         />
       </div>
 
-      {loading ? (
+      {isInitialLoading ? (
         <p className="text-center text-sm">Loading validators...</p>
       ) : error ? (
         <p className="text-center text-red-500">{error}</p>
       ) : (
         <div className="overflow-x-auto">
-
+          {isRefreshing && (
+            <div className="text-center text-sm mb-2">
+              <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-indigo-500 mx-auto"></span>
+              Refreshing...
+            </div>
+          )}
           <table className="w-full border-collapse border-t border-b border-gray-700 text-white text-sm">
             <thead>
               <tr className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">

@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { useWallet } from '../hooks/useWallet';
-// import { usePolkadotApi } from '../hooks/usePolkadotApi';
-
-const SS58_PREFIX = 71;
+import config from '../config';
 
 const ValidatorAddForm = ({ api }) => {
- // const { api } = usePolkadotApi();
   const { accounts, account, connect, injector } = useWallet();
 
   const [balances, setBalances] = useState({});
@@ -129,12 +126,12 @@ const ValidatorAddForm = ({ api }) => {
       <div className="text-left text-sm text-gray-500">
         <p>In order to join, you must have:</p>
         <ul>
-          <li>1. Locked: 400,000 P3D for 50,000+ blocks ahead</li>
+          <li>1. Locked: 400,000 {config.FORMAT_BALANCE.unit} for 50,000+ blocks ahead</li>
           <li>2. Identity: "Reasonable"</li>
         </ul>
       </div>
       <div className="mt-3 text-left text-sm text-white-500">
-        Setup fee: 10,000 P3D will be charged to Treasury, if succesful
+        Setup fee: 10,000 {config.FORMAT_BALANCE.unit} will be charged to Treasury, if succesful
       </div>
 
       <div>
@@ -145,9 +142,9 @@ const ValidatorAddForm = ({ api }) => {
         >
           <option value="">Choose an account</option>
           {accounts.map(({ address, meta }) => {
-            const formatted = encodeAddress(address, SS58_PREFIX).slice(0, 5);
+            const formatted = encodeAddress(address, config.SS58_PREFIX).slice(0, 5);
             const balance = balances[address];
-            const p3d = balance ? `${(balance / 10n ** 12n).toLocaleString()} P3D` : '...';
+            const p3d = balance ? `${(Number(balance) / (10 ** config.FORMAT_BALANCE.decimals)).toLocaleString(undefined, { minimumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS, maximumFractionDigits: config.BALANCE_FORMAT.DISPLAY_DECIMALS })} ${config.FORMAT_BALANCE.unit}` : '...';
             return (
               <option key={address} value={address}>
                 {meta.name || 'Unknown'} ({formatted}…) — {p3d}
@@ -170,7 +167,7 @@ const ValidatorAddForm = ({ api }) => {
 
       {validatorInfo && (
         <div className="text-sm text-gray-500 space-y-1">
-          <p>🔒 Locked: {validatorInfo.amount.toString()} P3D</p>
+          <p>🔒 Locked: {validatorInfo.amount.toString()} {config.FORMAT_BALANCE.unit}</p>
           <p>📦 Until Block: {validatorInfo.blockHeight ?? '—'}</p>
           <p>📉 Remaining: {validatorInfo.blocksRemaining ?? '—'} blocks</p>
           {validatorInfo.autoRelock && (
@@ -178,7 +175,7 @@ const ValidatorAddForm = ({ api }) => {
           )}
           {(validatorInfo.amount < 400_000n || validatorInfo.blocksRemaining < 50000) && (
             <p className="text-red-400 text-xs">
-              ❗ Must lock at least 400,000 P3D for 50,000+ blocks ahead
+              ❗ Must lock at least 400,000 {config.FORMAT_BALANCE.unit} for 50,000+ blocks ahead
             </p>
           )}
         </div>
