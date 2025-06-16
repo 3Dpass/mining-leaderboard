@@ -43,15 +43,13 @@ const ShareChart = ({ data }) => {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex justify-end mb-2">
+        <div className="flex justify-end mb-2 pr-4">
           <button
             onClick={() => setShowChart(!showChart)}
             className="text-xs text-gray-400 hover:text-indigo-300"
           >
             {showChart ? '(-) Hide' : '(+) Show'}
           </button>
-        </div>
       </div>
       
       {showChart && (
