@@ -39,6 +39,17 @@ const Notifications = ({ api }) => {
             addNotification({ type: 'info', message: `🔄 New session started: #${sessionIndex}` });
           }
 
+          if (section === 'offences' && method === 'Offence') {
+            // Convert the kind (16-byte array) to hex string for display
+            const kind = data[0].toHex();
+            // Get the timeslot as string
+            const timeslot = data[1].toString();
+            addNotification({ 
+              type: 'error', 
+              message: `⚠️ Offence reported - Kind: ${kind}, Timeslot: ${timeslot}` 
+            });
+          }
+
           if (section === 'validatorSet') {
             switch (method) {
               case 'ValidatorAdditionInitiated':

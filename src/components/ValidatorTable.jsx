@@ -8,6 +8,7 @@ import ValidatorUnlockForm from './ValidatorUnlockForm';
 import ValidatorRewardsUnlockForm from './ValidatorRewardsUnlockForm';
 import ValidatorPayPenaltyForm from './ValidatorPayPenaltyForm';
 import ValidatorKeysPopup from './ValidatorKeysPopup';
+import DialogGrandpaRoundState from './dialogs/DialogGrandpaRoundState';
 import config from '../config';
 
 const formatP3D = (value) => (Number(value) / 10 ** config.BALANCE_FORMAT.DEFAULT_DECIMALS).toFixed(config.BALANCE_FORMAT.DISPLAY_DECIMALS);
@@ -42,7 +43,7 @@ const ValidatorTable = ({ api, connected }) => {
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [showRewardsUnlockModal, setShowRewardsUnlockModal] = useState(false);
   const [showPayPenaltyModal, setShowPayPenaltyModal] = useState(false);
-
+  const [showGrandpaRoundState, setShowGrandpaRoundState] = useState(false);
 
   const fetchIdentity = useCallback(async (address, api) => {
     try {
@@ -257,7 +258,15 @@ const ValidatorTable = ({ api, connected }) => {
         <div className="flex-1 border border-[0.5px] rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">GRANDPA Status</div>
           <div className="text-2xl font-extrabold">{overview.grandpaStatus ?? '--'}</div>
-          <div className="text-sm font-light">Set ID #{grandpaSetId ?? '--'}</div>
+          <div className="text-sm font-light">
+            Set ID #{grandpaSetId ?? '--'}
+            <button
+              onClick={() => setShowGrandpaRoundState(true)}
+              className="ml-2 text-indigo-400 hover:text-indigo-300"
+            >
+              🔍 Details
+            </button>
+          </div>
         </div>
         <div className="flex-1 border border-[0.5px] rounded bg-gray-800 px-6 py-3 space-y-1 text-center text-white">
           <div className="text-sm font-semibold text-indigo-300">Active Validators</div>
@@ -270,6 +279,13 @@ const ValidatorTable = ({ api, connected }) => {
           </div>
         </div>
       </div>
+
+      <DialogGrandpaRoundState
+        isOpen={showGrandpaRoundState}
+        onClose={() => setShowGrandpaRoundState(false)}
+        api={api}
+        connected={connected}
+      />
 
       <div className="border border-[0.5px] rounded bg-gray-800 px-3 py-3">   
       <div className="mb-4">
