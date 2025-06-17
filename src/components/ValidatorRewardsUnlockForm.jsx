@@ -158,7 +158,7 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
           onClick={handleSubmit}
           className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-white"
         >
-          {submitting ? 'Submitting...' : 'Unlock'}
+          {submitting ? 'Submitting...' : 'Claim Vested'}
         </button>
 
         <button

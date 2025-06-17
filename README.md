@@ -40,6 +40,7 @@ Features:
     - "imOnline" - Heartbeat received, Offline detection
     - "Session" - New session initiation
     - "ValidatorSet" - all events
+- Grandpa Live best roundstate overview (prevotes, precommits, missing)
       
 <img width="985" alt="validator_dashboard-min" src="https://github.com/user-attachments/assets/cb7e0b5f-0eda-450e-a994-e3ea05d90c2f" />
 
@@ -53,7 +54,9 @@ API_BASE: 'https://api.3dpscan.xyz', // Explorer REST API endpoint
 ```
 
 ## LoT Node interaction
-The app fetches the **Validator Set** data directly from LoT [Node](https://github.com/3Dpass/3DP) through its RPC API endpoint (see more: `ValidatorTable.jsx`). Mainnet [RPC API providers](https://github.com/3Dpass/rpc-list/blob/main/list.txt) list.
+The app fetches the **Validator Set** data directly from LoT [Node](https://github.com/3Dpass/3DP) through its RPC API endpoint (see more: `ValidatorTable.jsx`). Mainnet [RPC API providers](https://github.com/3Dpass/rpc-list/blob/main/list.txt) list. 
+
+Full RPC API documentation[`docs/validatorSet_RPC_API.md`](docs/validatorSet_RPC_API.md) documentation. 
 
 Modify the `config.js` file to change the RPC API provider:
 ```
