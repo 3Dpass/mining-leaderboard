@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer
 } from 'recharts';
+import config from '../config';
 
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
@@ -10,13 +11,13 @@ const formatTime = (timestamp) => {
 
 const formatHashrate = (value) => {
   if (!value || value <= 0) return '0 H/s';
-  const units = ['H/s', 'KH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s'];
+  const units = config.HASHRATE_UNITS;
   let i = 0;
   while (value >= 1000 && i < units.length - 1) {
     value /= 1000;
     i++;
   }
-  return `${value.toFixed(2)} ${units[i]}`;
+  return `${value.toFixed(config.BALANCE_FORMAT.HASH_RATE_DECIMALS)} ${units[i]}`;
 };
 
 const HashrateChart = ({ data }) => {

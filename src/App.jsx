@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Alert } from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
@@ -10,35 +11,15 @@ import NetworkState from './components/NetworkState';
 import DialogRpcSettings from './components/dialogs/DialogRpcSettings';
 import Notifications from './components//Notifications'; // Import the notification component
 
-const App = () => {
+const AppContent = () => {
   const { api, connected, reconnect, error } = usePolkadotApi();
-  const [showMining, setShowMining] = useState(true);
-  const [showValidators, setShowValidators] = useState(false);
-  const [miningButtonClass, setMiningButtonClass] = useState('bg-gray-900 text-white font-semibold');
-  const [validatorsButtonClass, setValidatorsButtonClass] = useState('bg-gray-900 text-gray-400');
+  const location = useLocation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
-  const toggleMining = () => {
-    const nextState = !showMining;
-    setShowMining(nextState);
-    setMiningButtonClass(nextState ? 'bg-gray-900 text-white font-semibold' : 'bg-gray-900 text-gray-400');
-    // Turn off Validators when Mining is turned on
-    if (nextState) {
-      setShowValidators(false);
-      setValidatorsButtonClass('bg-gray-900 text-gray-400');
-    }
-  };
-
-  const toggleValidators = () => {
-    const nextState = !showValidators;
-    setShowValidators(nextState);
-    setValidatorsButtonClass(nextState ? 'bg-gray-900 text-white font-semibold' : 'bg-gray-900 text-gray-400');
-    // Turn off Mining when Validators is turned on
-    if (nextState) {
-      setShowMining(false);
-      setMiningButtonClass('bg-gray-900 text-gray-400');
-    }
-  };
+  // Determine active state based on current route
+  const isMiningActive = location.pathname === '/mining' || location.pathname === '/';
+  const isValidatorActive = location.pathname === '/validator';
 
   const handleEndpointChange = (newEndpoint) => {
     console.log("New endpoint:", newEndpoint);
@@ -47,85 +28,85 @@ const App = () => {
   };
 
   return (
- <div className="w-full max-w-6xl mx-auto p-2 space-y-4">
-  <div className="bg-gray-900 text-gray-400 p-2 shadow-md">
-    <div className="max-w-8xl mx-auto flex items-center justify-center space-x-6 font-medium text-md">
-      <img 
-        src="/img/3dpass_logo_white.png" 
-        className="w-6 h-6 hidden sm:block" 
-        alt="3DPass Logo" 
-      />
-      <NetworkInfo api={api} connected={connected} />
-      
-      {/* Toggle Buttons */}
-      <button
-        aria-pressed={showMining}
-        onClick={toggleMining}
-        className={`px-1 py-2 rounded ${miningButtonClass} hover:bg-gray-900 hover:underline text-md`}
-        aria-label={showMining ? 'Turn off mining board' : 'Turn on mining board'}
-      >
-        {showMining ? 'Mining leaderboard' : 'Mining leaderboard'}
-      </button>
-      <button
-        aria-pressed={showValidators}
-        onClick={toggleValidators}
-        className={`px-1 py-2 rounded ${validatorsButtonClass} hover:bg-gray-900 hover:underline text-md`}
-        aria-label={showValidators ? 'Turn off validator board' : 'Turn on validator board'}
-      >
-        {showValidators ? 'Validator set' : 'Validator set'}
-      </button>
-      <a 
-        href="https://wallet.3dpass.org/" 
-        target="_blank" 
-        rel="noopener noreferrer" 
-        className="text-gray-400 hover:text-gray-400 hover:bg-gray-900 hover:underline px-1 py-2 rounded"
-      >
-        Wallet
-      </a>
-      <a 
-        href="https://3dpscan.xyz/" 
-        target="_blank" rel="noopener noreferrer" 
-        className="text-gray-400 hover:text-gray-400 hover:bg-gray-900 hover:underline px-1 py-2 rounded"
-      >
-        Explorer
-      </a>
-      <a 
-        href="https://3dpass.network/" 
-        target="_blank" 
-        rel="noopener noreferrer" 
-        className="text-gray-400 hover:text-gray-400 hover:bg-gray-900 hover:underline px-1 py-2 rounded"
-      >
-        Telemetry
-      </a>
-      <Button 
-        icon="cog"
-        className="bg-gray-600 hover:bg-blue-700  text-white"
-        onClick={() => setOpen(true)} 
-        minimal 
-      />
-      <DialogRpcSettings
-         isOpen={open}
-         onClose={() => setOpen(false)}
-         onEndpointChange={handleEndpointChange}
-       />
-       {/* Show the error alert if you'd like to handle connections errors
-        {error && (
-           <Alert
-            isOpen={true}
-            intent="danger"
-            onClose={() => setError(null)}
-            className="custom-rpc-disconnect"
-            style={{
-              backgroundColor: "#1f2937", // bg-gray-900
-              border: "0.5px solid #FFFFFF",
-              borderRadius: "0.375rem" 
-            }} 
-           >
-            {error}
-         </Alert>
-        )}*/}
-    </div>
-  </div>
+    <div className="w-full max-w-6xl mx-auto p-2 space-y-4">
+      <div className="bg-gray-900 text-gray-400 p-2 shadow-md">
+        <div className="max-w-8xl mx-auto flex items-center justify-center space-x-6 font-medium text-md">
+          <img 
+            src="/img/3dpass_logo_white.png" 
+            className="w-6 h-6 hidden sm:block" 
+            alt="3DPass Logo" 
+          />
+          <NetworkInfo api={api} connected={connected} />
+          
+          {/* Navigation Links */}
+          <Link
+            to="/mining"
+            className={`px-1 py-2 rounded hover:bg-gray-900 hover:underline hover:text-gray-200 text-md ${
+              isMiningActive ? 'bg-gray-900 text-white font-semibold' : 'bg-gray-900 text-gray-400'
+            }`}
+          >
+            Mining leaderboard
+          </Link>
+          <Link
+            to="/validator"
+            className={`px-1 py-2 rounded hover:bg-gray-900 hover:underline hover:text-gray-200 text-md ${
+              isValidatorActive ? 'bg-gray-900 text-white font-semibold' : 'bg-gray-900 text-gray-400'
+            }`}
+          >
+            Validator set
+          </Link>
+          <a 
+            href="https://wallet.3dpass.org/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-gray-400 hover:text-gray-400 hover:bg-gray-900 hover:underline px-1 py-2 rounded"
+          >
+            Wallet
+          </a>
+          <a 
+            href="https://3dpscan.xyz/" 
+            target="_blank" rel="noopener noreferrer" 
+            className="text-gray-400 hover:text-gray-400 hover:bg-gray-900 hover:underline px-1 py-2 rounded"
+          >
+            Explorer
+          </a>
+          <a 
+            href="https://3dpass.network/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-gray-400 hover:text-gray-400 hover:bg-gray-900 hover:underline px-1 py-2 rounded"
+          >
+            Telemetry
+          </a>
+          <Button 
+            icon="cog"
+            className="bg-gray-600 hover:bg-blue-700  text-white"
+            onClick={() => setOpen(true)} 
+            minimal 
+          />
+          <DialogRpcSettings
+             isOpen={open}
+             onClose={() => setOpen(false)}
+             onEndpointChange={handleEndpointChange}
+           />
+           {/* Show the error alert if you'd like to handle connections errors
+            {error && (
+               <Alert
+                isOpen={true}
+                intent="danger"
+                onClose={() => setError(null)}
+                className="custom-rpc-disconnect"
+                style={{
+                  backgroundColor: "#1f2937", // bg-gray-900
+                  border: "0.5px solid #FFFFFF",
+                  borderRadius: "0.375rem" 
+                }} 
+               >
+                {error}
+             </Alert>
+            )}*/}
+        </div>
+      </div>
 
       <div className="w-full max-w-4xl mx-auto p-4 space-y-4">
         <NetworkState api={api} connected={connected} />
@@ -135,19 +116,12 @@ const App = () => {
         <Notifications api={api} />
       </div>
 
-      {/* Mining Content */}
-      {showMining && (
-        <div>
-          <MiningLeaderboardTable api={api} connected={connected} />
-        </div>
-      )}
-
-      {/* Validators Content */}
-      {showValidators && (
-        <div>
-          <ValidatorTable api={api} connected={connected} />
-        </div>
-      )}
+      {/* Routes */}
+      <Routes>
+        <Route path="/" element={<MiningLeaderboardTable api={api} connected={connected} />} />
+        <Route path="/mining" element={<MiningLeaderboardTable api={api} connected={connected} />} />
+        <Route path="/validator" element={<ValidatorTable api={api} connected={connected} />} />
+      </Routes>
 
       <footer className="text-center text-sm text-gray-500 mt-12 py-6">
         <div className="flex justify-center space-x-6">
@@ -178,6 +152,14 @@ const App = () => {
         </div>
       </footer>
     </div>
+  );
+};
+
+const App = () => {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 };
 

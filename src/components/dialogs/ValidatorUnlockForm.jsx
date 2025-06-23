@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BN } from '@polkadot/util';
 import { formatBalance } from '@polkadot/util';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { useWallet } from '../hooks/useWallet';
-import config from '../config';
+import { useWallet } from '../../hooks/useWallet';
+import config from '../../config';
 
 // Helper to safely convert decimal strings to BN
 const toBnP3D = (val) => {
@@ -15,13 +15,17 @@ const toBnP3D = (val) => {
 };
 
 const ValidatorUnlockForm = ({ api }) => {
-  const { accounts, account, connect, injector } = useWallet();
+  const { accounts, account, connect, injector, connected } = useWallet();
   const [amount, setAmount] = useState('');
   const [tip, setTip] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [txHash, setTxHash] = useState(null);
   const [error, setError] = useState(null);
   const [balances, setBalances] = useState({});
+
+  if (!api) {
+    return <div className="p-4 text-white">Connecting to network...</div>;
+  }
 
   // Fetch balances for all accounts
   useEffect(() => {
@@ -44,10 +48,10 @@ const ValidatorUnlockForm = ({ api }) => {
     };
 
     fetchBalances();
-  }, [api, accounts]);
+  }, [api, accounts, connected]);
 
   const handleUnlock = async () => {
-    if (!api || !account || !injector) return;
+    if (!api || !account || !injector || !connected) return;
 
     try {
       setSubmitting(true);

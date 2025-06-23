@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useWallet } from '../hooks/useWallet';
+import { useWallet } from '../../hooks/useWallet';
 import { encodeAddress } from '@polkadot/util-crypto';
-import config from '../config';
+import config from '../../config';
 
 const RejoinValidatorForm = ({ api }) => {
-  const { accounts, account, connect, injector } = useWallet();
+  const { accounts, account, connect, injector, connected } = useWallet();
 
   const [submitting, setSubmitting] = useState(false);
   const [txHash, setTxHash] = useState(null);
@@ -13,6 +13,8 @@ const RejoinValidatorForm = ({ api }) => {
 
   // Fetch balances for selected accounts
   useEffect(() => {
+    if (!api || !connected) return;
+
     const fetchBalances = async () => {
       if (!api || accounts.length === 0) return;
 
@@ -33,10 +35,10 @@ const RejoinValidatorForm = ({ api }) => {
     };
 
     fetchBalances();
-  }, [api, accounts]);
+  }, [api, accounts, connected]);
 
   const handleSubmit = async () => {
-    if (!api || !account || !injector) return;
+    if (!api || !account || !injector || !connected) return;
 
     try {
       setSubmitting(true);

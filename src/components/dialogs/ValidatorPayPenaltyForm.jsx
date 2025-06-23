@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { useWallet } from '../hooks/useWallet';
-import config from '../config';
+import { useWallet } from '../../hooks/useWallet';
+import config from '../../config';
 
 const ValidatorPayPenaltyForm = ({ api }) => {
   const { accounts, account, connect, injector } = useWallet();

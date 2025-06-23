@@ -1,27 +1,33 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 //import { usePolkadotApi } from '../hooks/usePolkadotApi';
-import ValidatorLockForm from './ValidatorLockForm';
-import SetSessionKeysForm from './SetSessionKeysForm';
-import ValidatorAddForm from './ValidatorAddForm';
-import RejoinValidatorForm from './RejoinValidatorForm';
-import ValidatorUnlockForm from './ValidatorUnlockForm';
-import ValidatorRewardsUnlockForm from './ValidatorRewardsUnlockForm';
-import ValidatorPayPenaltyForm from './ValidatorPayPenaltyForm';
+import ValidatorLockForm from './dialogs/ValidatorLockForm';
+import SetSessionKeysForm from './dialogs/SetSessionKeysForm';
+import ValidatorAddForm from './dialogs/ValidatorAddForm';
+import RejoinValidatorForm from './dialogs/RejoinValidatorForm';
+import ValidatorUnlockForm from './dialogs/ValidatorUnlockForm';
+import ValidatorRewardsUnlockForm from './dialogs/ValidatorRewardsUnlockForm';
+import ValidatorPayPenaltyForm from './dialogs/ValidatorPayPenaltyForm';
 import ValidatorKeysPopup from './ValidatorKeysPopup';
 import DialogGrandpaRoundState from './dialogs/DialogGrandpaRoundState';
 import config from '../config';
 
-const formatP3D = (value) => (Number(value) / 10 ** config.BALANCE_FORMAT.DEFAULT_DECIMALS).toFixed(config.BALANCE_FORMAT.DISPLAY_DECIMALS);
-const formatP3Dlocked = (value) => (Number(value) / 10 ** config.BALANCE_FORMAT.DEFAULT_DECIMALS).toFixed(config.BALANCE_FORMAT.LOCKED_DECIMALS);
+const formatP3D = (value) => {
+  if (!value || isNaN(Number(value))) return '0.0000';
+  return (Number(value) / 10 ** config.BALANCE_FORMAT.DEFAULT_DECIMALS).toFixed(config.BALANCE_FORMAT.DISPLAY_DECIMALS);
+};
 
+const formatP3Dlocked = (value) => {
+  if (!value || isNaN(Number(value))) return '0.00';
+  return (Number(value) / 10 ** config.BALANCE_FORMAT.DEFAULT_DECIMALS).toFixed(config.BALANCE_FORMAT.LOCKED_DECIMALS);
+};
 
 const ValidatorTable = ({ api, connected }) => {
   const [validators, setValidators] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(100);
+  const [visibleCount, setVisibleCount] = useState(config.VALIDATOR_VISIBLE_COUNT_DEFAULT);
   const [error, setError] = useState(null);
-  const [isInitialLoading, setIsInitialLoading] = useState(true); // New state for initial load
-  const [isRefreshing, setIsRefreshing] = useState(false); // New state for refresh indicator
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [overview, setOverview] = useState({
     sessionIndex: null,
@@ -45,7 +51,12 @@ const ValidatorTable = ({ api, connected }) => {
   const [showPayPenaltyModal, setShowPayPenaltyModal] = useState(false);
   const [showGrandpaRoundState, setShowGrandpaRoundState] = useState(false);
 
+  // Refs for cleanup
+  const refreshIntervalRef = useRef(null);
+  const grandpaUnsubscribeRef = useRef(null);
+
   const fetchIdentity = useCallback(async (address, api) => {
+    if (!api || !connected) return;
     try {
       const identityOpt = await api.query.identity.identityOf(address);
       if (identityOpt.isSome) {
@@ -59,13 +70,17 @@ const ValidatorTable = ({ api, connected }) => {
         }
       }
       return { displayName: 'N/A', judgement: null };
-    } catch {
+    } catch (error) {
+      console.warn('Failed to fetch identity for address:', address, error);
       return { displayName: 'N/A', judgement: null };
     }
-  }, []);
+  }, [api, connected]);
 
   const fetchValidators = useCallback(async (api, isRefresh = false) => {
+    if (!api || !connected) return;
     try {
+      setError(null);
+      
       if (!isRefresh) {
         setIsInitialLoading(true);
       } else {
@@ -119,7 +134,18 @@ const ValidatorTable = ({ api, connected }) => {
         });
       });
 
-      const identityPromises = approvedValidators.map(addr => fetchIdentity(addr.toString(), api));
+      // Fetch identities in batches to avoid overwhelming the API
+      const identityPromises = [];
+      for (let i = 0; i < approvedValidators.length; i += config.VALIDATOR_IDENTITY_BATCH_SIZE) {
+        const batch = approvedValidators.slice(i, i + config.VALIDATOR_IDENTITY_BATCH_SIZE);
+        const batchPromises = batch.map(addr => fetchIdentity(addr.toString(), api));
+        identityPromises.push(...batchPromises);
+        // Add small delay between batches to prevent rate limiting
+        if (i + config.VALIDATOR_IDENTITY_BATCH_SIZE < approvedValidators.length) {
+          await new Promise(resolve => setTimeout(resolve, config.VALIDATOR_IDENTITY_BATCH_DELAY_MS));
+        }
+      }
+      
       const identities = await Promise.all(identityPromises);
 
       const table = approvedValidators.map((addr, index) => {
@@ -134,8 +160,8 @@ const ValidatorTable = ({ api, connected }) => {
 
         return {
           address,
-          displayName: identity.displayName,
-          judgement: identity.judgement,
+          displayName: identity?.displayName || 'N/A',
+          judgement: identity?.judgement || null,
           status: isActive ? 'Active' : isCandidate ? 'Candidate' : 'Inactive',
           lockedUntil: lock ? lock[0] : null,
           lockedAmount: lock ? formatP3Dlocked(lock[1]) : null,
@@ -154,8 +180,8 @@ const ValidatorTable = ({ api, connected }) => {
         activeValidatorCount: actives.length
       });
     } catch (err) {
-      setError('Failed to load validator data.');
-      console.error(err);
+      console.error('Failed to fetch validators:', err);
+      setError('Failed to load validator data. Please try again.');
     } finally {
       if (!isRefresh) {
         setIsInitialLoading(false);
@@ -163,9 +189,10 @@ const ValidatorTable = ({ api, connected }) => {
         setIsRefreshing(false);
       }
     }
-  }, [fetchIdentity]);
+  }, [fetchIdentity, api, connected]);
 
   const fetchBlockReward = useCallback(async (api) => {
+    if (!api || !connected) return;
     try {
       const finalizedHead = await api.rpc.chain.getFinalizedHead();
       const events = await api.query.system.events.at(finalizedHead);
@@ -185,9 +212,10 @@ const ValidatorTable = ({ api, connected }) => {
       console.error('Block reward fetch failed:', err);
       setBlockReward('--');
     }
-  }, []);
+  }, [api, connected]);
 
   const fetchBestFinalizedBlock = useCallback(async (api) => {
+    if (!api || !connected) return;
     try {
       const head = await api.rpc.chain.getFinalizedHead();
       const block = await api.rpc.chain.getBlock(head);
@@ -195,56 +223,133 @@ const ValidatorTable = ({ api, connected }) => {
     } catch (err) {
       console.error('Finalized block fetch failed:', err);
     }
-  }, []);
+  }, [api, connected]);
 
   const [grandpaSetId, setGrandpaSetId] = useState(null);
 
   useEffect(() => {
-    let unsubscribe;
+    if (!api || !connected) return;
 
-    if (api) {
-      api.query.grandpa.currentSetId((setId) => {
-        setGrandpaSetId(setId.toString());
-      }).then((unsub) => unsubscribe = unsub);
-    }
+    api.query.grandpa.currentSetId((setId) => {
+      setGrandpaSetId(setId.toString());
+    }).then((unsub) => {
+      grandpaUnsubscribeRef.current = unsub;
+    }).catch(error => {
+      console.error('Failed to subscribe to grandpa set ID:', error);
+    });
 
-    return () => unsubscribe?.();
-  }, [api]);
+    return () => {
+      if (grandpaUnsubscribeRef.current) {
+        grandpaUnsubscribeRef.current();
+      }
+    };
+  }, [api, connected]);
 
+  // Memoized filtered validators with optimized search
   const filterValidators = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return validators.filter(v => filter === 'All' || v.status === filter);
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
     return validators.filter(v =>
       (filter === 'All' || v.status === filter) &&
-      (v.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       v.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
+      (v.address.toLowerCase().includes(query) ||
+       v.displayName.toLowerCase().includes(query))
     );
   }, [validators, filter, searchQuery]);
+
+  // Memoized visible validators to prevent unnecessary re-renders
+  const visibleValidators = useMemo(() => 
+    filterValidators.slice(0, visibleCount),
+    [filterValidators, visibleCount]
+  );
+
+  // Memoized status counts for performance
+  const statusCounts = useMemo(() => {
+    const counts = { Active: 0, Inactive: 0, Candidate: 0 };
+    validators.forEach(v => {
+      counts[v.status] = (counts[v.status] || 0) + 1;
+    });
+    return counts;
+  }, [validators]);
 
   useEffect(() => {
     if (!api || !connected) return;
 
     const load = async () => {
-      await fetchValidators(api, false); // Initial load
-      await fetchBlockReward(api);
-      await fetchBestFinalizedBlock(api);
+      try {
+        await Promise.all([
+          fetchValidators(api, false),
+          fetchBlockReward(api),
+          fetchBestFinalizedBlock(api)
+        ]);
+      } catch (error) {
+        console.error('Initial load failed:', error);
+      }
     };
 
     load();
-    const interval = setInterval(async () => {
-      await fetchValidators(api, true); // Refresh with isRefresh=true
-      await fetchBlockReward(api);
-      await fetchBestFinalizedBlock(api);
+    
+    refreshIntervalRef.current = setInterval(async () => {
+      try {
+        await Promise.all([
+          fetchValidators(api, true),
+          fetchBlockReward(api),
+          fetchBestFinalizedBlock(api)
+        ]);
+      } catch (error) {
+        console.error('Refresh failed:', error);
+      }
     }, 6 * 60 * 1000);
-    return () => clearInterval(interval);
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
   }, [api, connected, fetchValidators, fetchBlockReward, fetchBestFinalizedBlock]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+      if (grandpaUnsubscribeRef.current) {
+        grandpaUnsubscribeRef.current();
+      }
+    };
+  }, []);
+
+  // Memoized filter options
+  const filterOptions = useMemo(() => [
+    { key: 'Active', count: statusCounts.Active },
+    { key: 'Inactive', count: statusCounts.Inactive },
+    { key: 'Candidate', count: statusCounts.Candidate },
+    { key: 'All', count: validators.length }
+  ], [statusCounts, validators.length]);
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <h2 className="text-3xl font-bold text-center">🛡️ Validator Set</h2>
+      
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded">
+          <div className="font-semibold">Error:</div>
+          <div className="text-sm">{error}</div>
+        </div>
+      )}
+      
       <div className="flex justify-center space-x-4 mb-4">
-        {['Active', 'Inactive', 'Candidates', 'All'].map(opt => (
-          <button key={opt} onClick={() => setFilter(opt)}
-            className={`px-4 py-2 rounded ${filter === opt ? 'bg-indigo-500' : 'bg-gray-700'} text-white`}>
-            {opt}
+        {filterOptions.map(opt => (
+          <button 
+            key={opt.key} 
+            onClick={() => setFilter(opt.key)}
+            className={`px-4 py-2 rounded ${filter === opt.key ? 'bg-indigo-500' : 'bg-gray-700'} text-white`}
+          >
+            {opt.key} ({opt.count})
           </button>
         ))}
       </div>
@@ -288,241 +393,250 @@ const ValidatorTable = ({ api, connected }) => {
       />
 
       <div className="border border-[0.5px] rounded bg-gray-800 px-3 py-3">   
-      <div className="mb-4">
-        <div className="text-center">
-        <button
-          onClick={() => setShowLockModal(true)}
-          className="px-4 py-2 mr-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
-          >
-          🔒 Lock
-       </button>
+        <div className="mb-4">
+          <div className="text-center">
+            <button
+              onClick={() => setShowLockModal(true)}
+              className="px-4 py-2 mr-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
+            >
+              🔒 Lock
+            </button>
 
-       <button
-          onClick={() => setShowAddModal(true)}
-          className="mr-2 px-4 py-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
-          >
-          ➕ Join
-       </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="mr-2 px-4 py-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
+            >
+              ➕ Join
+            </button>
 
-       <button
-          onClick={() => setShowKeysModal(true)}
-          className="mr-2 mb-2 px-4 py-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
-          >
-          🔑 Set Keys
-       </button>
+            <button
+              onClick={() => setShowKeysModal(true)}
+              className="mr-2 mb-2 px-4 py-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
+            >
+              🔑 Set Keys
+            </button>
 
-       <button
-          onClick={() => setShowRejoinModal(true)}
-          className="mr-2 mb-2 px-4 py-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
-          >
-          🔁 Rejoin
-       </button>
+            <button
+              onClick={() => setShowRejoinModal(true)}
+              className="mr-2 mb-2 px-4 py-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
+            >
+              🔁 Rejoin
+            </button>
 
-        <button
-          onClick={() => setShowUnlockModal(true)}
-          className="px-4 py-2 mr-2 mb-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
-          >
-          🔓 Unlock
-       </button>
+            <button
+              onClick={() => setShowUnlockModal(true)}
+              className="px-4 py-2 mr-2 mb-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
+            >
+              🔓 Unlock
+            </button>
 
-        <button
-          onClick={() => setShowRewardsUnlockModal(true)}
-          className="px-4 py-2 mr-2 mb-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
-          >
-          💰 Claim
-       </button>
+            <button
+              onClick={() => setShowRewardsUnlockModal(true)}
+              className="px-4 py-2 mr-2 mb-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
+            >
+              💰 Claim
+            </button>
 
-        <button
-          onClick={() => setShowPayPenaltyModal(true)}
-          className="px-4 py-2 mr-2 mb-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
-          >
-          🚨 Penalty
-       </button>
-    
-      </div>
-        <input
-          className="px-4 py-2 rounded bg-gray-700 text-white"
-          placeholder="Search address or name"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-        />
-      </div>
-
-      {isInitialLoading ? (
-        <p className="text-center text-sm">Loading validators...</p>
-      ) : error ? (
-        <p className="text-center text-red-500">{error}</p>
-      ) : (
-        <div className="overflow-x-auto">
-          {isRefreshing && (
-            <div className="text-center text-sm mb-2">
-              <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-indigo-500 mx-auto"></span>
-              Refreshing...
-            </div>
-          )}
-          <table className="w-full border-collapse border-t border-b border-gray-700 text-white text-sm">
-            <thead>
-              <tr className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">
-                <th className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">Validator</th>
-                <th className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">Status</th>
-                <th className="border-t border-b border-gray-700 p-1 text-right text-gray-400">Collateral</th>
-                <th className="border-t border-b border-gray-700 p-2 text-right text-gray-400">Last exit</th>
-                <th className="border-t border-b border-gray-700 p-2 text-right text-gray-400">Eq</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filterValidators.slice(0, visibleCount).map(v => (
-                <tr key={v.address} className="hover:bg-gray-700">
-                  <td className="px-2 py-1 font-mono">
-                    <a href={`https://3dpscan.xyz/#/accounts/${v.address}`} 
-                       target="_blank" 
-                       rel="noreferrer" 
-                       className="underline hover:text-indigo-300 font-mono">{v.address}
-                    </a>
-                    <div className="text-xs text-gray-400">
-                      {v.judgement === 'Reasonable' ? '✅' :
-                       v.judgement === 'Erroneous' ? '🚫' :
-                       v.judgement === 'FeePaid' ? '🧾' :
-                       v.judgement === 'KnownGood' ? '👤✅' :
-                       v.judgement === 'OutOfDate' ? '👤⚠️' : '❓'} {v.displayName}
-                      </div>
-                     {/* {v.address && <ValidatorKeysPopup stashAddress={v.address} />} */}
-                      <ValidatorKeysPopup api={api} stashAddress={v.address} />
-                  </td>
-                  <td className="border-t border-b border-gray-700 p-2 text-center text-sm text-gray-400">
-                    {v.status}
-                  </td>
-                  <td className="border-t border-b border-gray-700 p-1 text-right">
-                    {v.lockedAmount ?? '--'} P3D {" "}
-                   <span className="text-sm text-gray-400">
-                      until #{v.lockedUntil ?? '--'} {" "} 
-                    <span className="text-sm text-orange-400" title="Penalty">
-                      {v.penalty ? `🔻 ${v.penalty} P3D` : '🟢'}
-                    </span>
-                   </span>
-                  </td>
-                  <td className="border-t border-b border-gray-700 p-2 text-right">
-                    <a href={`https://3dpscan.xyz/#/blocks/${v.removalBlock ? `${v.removalBlock}` : '--'}?tab=events&page=1`} 
-                       target="_blank" 
-                       rel="noreferrer" 
-                       className="underline hover:text-indigo-300 font-mono">
-                      {v.removalBlock ? `${v.removalBlock}` : ''}
-                    </a>
-
-                     {" "}
-                    <span className="text-sm text-gray-400">
-                     {v.removalBlock ? `(${v.removalReason})` : '--'}
-                     </span>
-                  </td>
-                  <td className="text-center">{v.equivocation ? '⚠️' : '✅'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {visibleCount < filterValidators.length && (
-            <div className="text-center mt-3">
-              <button onClick={() => setVisibleCount(vc => vc + 100)}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded">
-                Show more
-              </button>
-            </div>
-          )}
-          {showLockModal && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
-                <button
-                 onClick={() => setShowLockModal(false)}
-                  className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
-                 >
-                 ✖
-               </button>
-                <ValidatorLockForm api={api} />
-             </div>
-           </div>
-          )}
-
-          {showAddModal && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
-                <button
-                 onClick={() => setShowAddModal(false)}
-                  className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
-                 >
-                 ✖
-               </button>
-                <ValidatorAddForm api={api} />
-             </div>
-           </div>
-          )}
-
-          {showKeysModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-           <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
-             <SetSessionKeysForm api={api} onClose={() => setShowKeysModal(false)} />
+            <button
+              onClick={() => setShowPayPenaltyModal(true)}
+              className="px-4 py-2 mr-2 mb-2 bg-gray-600 hover:bg-indigo-700 text-white rounded"
+            >
+              🚨 Penalty
+            </button>
           </div>
-         </div>
-        )}
-
-         {showRejoinModal && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
-                <button
-                 onClick={() => setShowRejoinModal(false)}
-                  className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
-                 >
-                 ✖
-               </button>
-                <RejoinValidatorForm api={api} />
-             </div>
-           </div>
-          )}
-
-           {showUnlockModal && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
-                <button
-                 onClick={() => setShowUnlockModal(false)}
-                  className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
-                 >
-                 ✖
-               </button>
-                <ValidatorUnlockForm api={api} />
-             </div>
-           </div>
-          )}
-
-          {showRewardsUnlockModal && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
-                <button
-                 onClick={() => setShowRewardsUnlockModal(false)}
-                  className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
-                 >
-                 ✖
-               </button>
-                <ValidatorRewardsUnlockForm api={api} />
-             </div>
-           </div>
-          )}
-
-          {showPayPenaltyModal && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-             <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
-                <button
-                 onClick={() => setShowPayPenaltyModal(false)}
-                  className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
-                 >
-                 ✖
-               </button>
-                <ValidatorPayPenaltyForm api={api} />
-             </div>
-           </div>
-          )}
-
+          <input
+            className="px-4 py-2 rounded bg-gray-700 text-white"
+            placeholder="Search address or name"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
         </div>
-      )}
-    </div>
+
+        {isInitialLoading ? (
+          <p className="text-center text-sm">Loading validators...</p>
+        ) : error ? (
+          <p className="text-center text-red-500">{error}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            {isRefreshing && (
+              <div className="text-center text-sm mb-2">
+                <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-indigo-500 mx-auto"></span>
+                Refreshing...
+              </div>
+            )}
+            <table className="w-full border-collapse border-t border-b border-gray-700 text-white text-sm">
+              <thead>
+                <tr className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">
+                  <th className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">Validator</th>
+                  <th className="border-t border-b border-gray-700 px-3 py-1 text-left text-gray-400">Status</th>
+                  <th className="border-t border-b border-gray-700 p-1 text-right text-gray-400">Collateral</th>
+                  <th className="border-t border-b border-gray-700 p-2 text-right text-gray-400">Last exit</th>
+                  <th className="border-t border-b border-gray-700 p-2 text-right text-gray-400">Eq</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleValidators.map(v => (
+                  <tr key={v.address} className="hover:bg-gray-700">
+                    <td className="px-2 py-1 font-mono">
+                      <a 
+                        href={`https://3dpscan.xyz/#/accounts/${v.address}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="underline hover:text-indigo-300 font-mono"
+                      >
+                        {v.address}
+                      </a>
+                      <div className="text-xs text-gray-400">
+                        {v.judgement === 'Reasonable' ? '✅' :
+                         v.judgement === 'Erroneous' ? '🚫' :
+                         v.judgement === 'FeePaid' ? '🧾' :
+                         v.judgement === 'KnownGood' ? '👤✅' :
+                         v.judgement === 'OutOfDate' ? '👤⚠️' : '❓'} {v.displayName}
+                      </div>
+                      <ValidatorKeysPopup api={api} stashAddress={v.address} connected={connected} />
+                    </td>
+                    <td className="border-t border-b border-gray-700 p-2 text-center text-sm text-gray-400">
+                      {v.status}
+                    </td>
+                    <td className="border-t border-b border-gray-700 p-1 text-right">
+                      {v.lockedAmount ?? '--'} P3D {" "}
+                      <span className="text-sm text-gray-400">
+                        until #{v.lockedUntil ?? '--'} {" "} 
+                        <span className="text-sm text-orange-400" title="Penalty">
+                          {v.penalty ? `🔻 ${v.penalty} P3D` : '🟢'}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="border-t border-b border-gray-700 p-2 text-right">
+                      {v.removalBlock ? (
+                        <a 
+                          href={`https://3dpscan.xyz/#/blocks/${v.removalBlock}?tab=events&page=1`} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="underline hover:text-indigo-300 font-mono"
+                        >
+                          {v.removalBlock}
+                        </a>
+                      ) : (
+                        '--'
+                      )}
+                      {" "}
+                      <span className="text-sm text-gray-400">
+                        {v.removalBlock ? `(${v.removalReason})` : ''}
+                      </span>
+                    </td>
+                    <td className="text-center">{v.equivocation ? '⚠️' : '✅'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {visibleCount < filterValidators.length && (
+              <div className="text-center mt-3">
+                <button 
+                  onClick={() => setVisibleCount(vc => vc + config.VALIDATOR_VISIBLE_COUNT_INCREMENT)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
+                >
+                  Show more
+                </button>
+              </div>
+            )}
+
+            {/* Modal Components */}
+            {showLockModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
+                  <button
+                    onClick={() => setShowLockModal(false)}
+                    className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
+                  >
+                    ✖
+                  </button>
+                  <ValidatorLockForm api={api} />
+                </div>
+              </div>
+            )}
+
+            {showAddModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
+                  <button
+                    onClick={() => setShowAddModal(false)}
+                    className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
+                  >
+                    ✖
+                  </button>
+                  <ValidatorAddForm api={api} />
+                </div>
+              </div>
+            )}
+
+            {showKeysModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
+                  <SetSessionKeysForm api={api} onClose={() => setShowKeysModal(false)} />
+                </div>
+              </div>
+            )}
+
+            {showRejoinModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
+                  <button
+                    onClick={() => setShowRejoinModal(false)}
+                    className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
+                  >
+                    ✖
+                  </button>
+                  <RejoinValidatorForm api={api} />
+                </div>
+              </div>
+            )}
+
+            {showUnlockModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
+                  <button
+                    onClick={() => setShowUnlockModal(false)}
+                    className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
+                  >
+                    ✖
+                  </button>
+                  <ValidatorUnlockForm api={api} />
+                </div>
+              </div>
+            )}
+
+            {showRewardsUnlockModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
+                  <button
+                    onClick={() => setShowRewardsUnlockModal(false)}
+                    className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
+                  >
+                    ✖
+                  </button>
+                  <ValidatorRewardsUnlockForm api={api} />
+                </div>
+              </div>
+            )}
+
+            {showPayPenaltyModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-gray-900 text-white p-6 rounded-lg max-w-lg w-full shadow-xl relative border border-[0.5px]">
+                  <button
+                    onClick={() => setShowPayPenaltyModal(false)}
+                    className="absolute top-2 right-3 text-gray-400 hover:text-white text-lg"
+                  >
+                    ✖
+                  </button>
+                  <ValidatorPayPenaltyForm api={api} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

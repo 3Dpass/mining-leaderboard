@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp';
 import { encodeAddress } from '@polkadot/util-crypto';
-import config from '../config';
+import config from '../../config';
 
 const SetSessionKeysForm = ({ api, onClose }) => {
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState('');
-  const [grandpaKey, setGrandpaKey] = useState('0x');
-  const [imonlineKey, setImonlineKey] = useState('0x');
-  const [proof, setProof] = useState('0x');
+  const [grandpaKey, setGrandpaKey] = useState(config.SET_SESSION_KEYS_DEFAULT_KEY);
+  const [imonlineKey, setImonlineKey] = useState(config.SET_SESSION_KEYS_DEFAULT_KEY);
+  const [proof, setProof] = useState(config.SET_SESSION_KEYS_DEFAULT_KEY);
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [p3dBalance, setP3dBalance] = useState(null); // State for P3D balance
+  const [connected, setConnected] = useState(true); // Added for the new condition
 
   // Load accounts on mount
   useEffect(() => {
     const loadAccounts = async () => {
+      if (!api || !connected) return;
       await web3Enable('3DPass Validator DApp');
       const injectedAccounts = await web3Accounts();
       setAccounts(injectedAccounts);
@@ -24,12 +26,12 @@ const SetSessionKeysForm = ({ api, onClose }) => {
       }
     };
     loadAccounts();
-  }, []);
+  }, [api, connected]);
 
   // Fetch P3D balance when selected account changes
   useEffect(() => {
     const fetchP3DBalance = async () => {
-      if (!api || !selectedAccount) return;
+      if (!api || !selectedAccount || !connected) return;
 
       try {
         const { data: { free } } = await api.query.system.account(selectedAccount.address);
@@ -41,7 +43,7 @@ const SetSessionKeysForm = ({ api, onClose }) => {
       }
     };
     fetchP3DBalance();
-  }, [selectedAccount, api]);
+  }, [selectedAccount, api, connected]);
 
   // Function to validate keys (only checks if they start with '0x')
   const isValidKey = (key) => {
@@ -50,7 +52,7 @@ const SetSessionKeysForm = ({ api, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!api || !selectedAccount) {
+    if (!api || !selectedAccount || !connected) {
       console.error('API or selected account is not available');
       return;
     }

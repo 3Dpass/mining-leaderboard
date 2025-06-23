@@ -5,7 +5,7 @@ import config from '../config';
 
 let cachedQueuedKeys = null;
 
-const ValidatorKeysPopup = ({ api, stashAddress }) => {
+const ValidatorKeysPopup = ({ api, stashAddress, connected }) => {
   const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [queuedKeyData, setQueuedKeyData] = useState(null);
@@ -19,7 +19,7 @@ const ValidatorKeysPopup = ({ api, stashAddress }) => {
       return;
     }
 
-    if (!api || !stashAddress) {
+    if (!api || !stashAddress || !connected) {
       setError('API or stash address not available.');
       return;
     }

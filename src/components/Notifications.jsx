@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
 import config from '../config';
 
-const Notifications = ({ api }) => {
+const Notifications = ({ api, connected }) => {
   const [notifications, setNotifications] = useState([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [showNotifications, setShowNotifications] = useState(true);
 
   useEffect(() => {
-    if (!api || !notificationsEnabled) return;
+    if (!api || !notificationsEnabled || !connected) return;
 
     let unsubscribe;
 
@@ -112,7 +112,7 @@ const Notifications = ({ api }) => {
         unsubscribe.then((unsub) => unsub()).catch(console.error);
       }
     };
-  }, [api, notificationsEnabled]);
+  }, [api, notificationsEnabled, connected]);
 
   const addNotification = ({ type, message }) => {
     setNotifications((prev) => {

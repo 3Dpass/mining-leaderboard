@@ -9,13 +9,13 @@ function formatMP3D(value) {
   return inMillions.toFixed(config.BALANCE_FORMAT.MP3D_DECIMALS) + ' M' + config.FORMAT_BALANCE.unit;
 }
 
-const NetworkState = ({ api }) => {
+const NetworkState = ({ api, connected }) => {
   const [networkState, setNetworkState] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch full network state (excluding finalized block)
   const loadNetworkState = useCallback(async () => {
-    if (!api) return;
+    if (!api || !connected) return;
 
     setIsLoading(true);
 
@@ -40,10 +40,10 @@ const NetworkState = ({ api }) => {
     }));
 
     setIsLoading(false);
-  }, [api]);
+  }, [api, connected]);
 
   useEffect(() => {
-    if (!api) return;
+    if (!api || !connected) return;
 
     let unsubNewHeads;
     let unsubFinalizedHeads;
@@ -71,7 +71,7 @@ const NetworkState = ({ api }) => {
       unsubNewHeads?.();
       unsubFinalizedHeads?.();
     };
-  }, [api, loadNetworkState]);
+  }, [api, connected, loadNetworkState]);
 
   if (!networkState) {
     return <div className="mb-1 w-full max-w-4xl h-[80px] animate-pulse bg-gray-800 border border-[0.5px] rounded" />;
@@ -91,7 +91,11 @@ const NetworkState = ({ api }) => {
       </div>
       <div>
         <div className="text-xs text-gray-500">Latest Block</div>
-        <div className="font-semibold"><TimeAgo date={timestamp} live={true} /></div>
+        <div className="font-semibold">
+          {timestamp && !isNaN(timestamp) && timestamp > 0 ? (
+            <TimeAgo date={new Date(timestamp)} live={true} />
+          ) : 'N/A'}
+        </div>
       </div>
       <div>
         <div className="text-xs text-gray-500">Target Time</div>

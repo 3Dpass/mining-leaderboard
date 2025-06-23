@@ -1,20 +1,18 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { hexToU8a } from '@polkadot/util';
 import ShareChart from './ShareChart';
 import HashrateChart from './HashrateChart';
-import ValidatorRewardsUnlockForm from './ValidatorRewardsUnlockForm';
+import ValidatorRewardsUnlockForm from './dialogs/ValidatorRewardsUnlockForm';
 import config from '../config';
 
 // Cache configuration
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const MAX_CACHE_ENTRIES = 1000;
 const cacheStore = new Map();
 
 // Storage configuration
-const BLOCK_STORAGE_KEY = 'mining_leaderboard_blocks';
-const MAX_STORED_BLOCKS = 1440; // Store last 24 hours of blocks
-const BLOCK_CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
+const BLOCK_STORAGE_KEY = config.BLOCK_STORAGE_KEY;
+const MAX_STORED_BLOCKS = config.MAX_STORED_BLOCKS;
+const BLOCK_CLEANUP_INTERVAL = config.BLOCK_CLEANUP_INTERVAL;
 
 // Utility functions
 const getStoredBlocks = () => {
@@ -34,9 +32,9 @@ const storeBlock = (block) => {
     // Create a clean version of the block without the last log
     const cleanBlock = {
       height: block.height,
-      time: block.time,
+      time: block.time || Date.now(),
       digest: {
-        logs: block.digest.logs.slice(0, -1)
+        logs: block.digest?.logs?.slice(0, -1) || []
       }
     };
 
@@ -56,7 +54,11 @@ const storeBlock = (block) => {
 
     // Use requestAnimationFrame for non-blocking storage
     requestAnimationFrame(() => {
-      localStorage.setItem(BLOCK_STORAGE_KEY, JSON.stringify(storedBlocks));
+      try {
+        localStorage.setItem(BLOCK_STORAGE_KEY, JSON.stringify(storedBlocks));
+      } catch (error) {
+        console.error('Error writing to localStorage:', error);
+      }
     });
   } catch (error) {
     console.error('Error storing block in localStorage:', error);
@@ -69,7 +71,7 @@ const fetchWithRetry = async (url, retries = 3) => {
       return await fetchWithCache(url);
     } catch (error) {
       if (i === retries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+      await new Promise(resolve => setTimeout(resolve, config.API_RETRY_BASE_DELAY_MS * Math.pow(2, i)));
     }
   }
 };
@@ -78,7 +80,7 @@ async function fetchWithCache(url) {
   const now = Date.now();
   const cached = cacheStore.get(url);
 
-  if (cached && (now - cached.timestamp < CACHE_DURATION)) {
+  if (cached && (now - cached.timestamp < config.CACHE_DURATION)) {
     return cached.data;
   }
 
@@ -88,9 +90,11 @@ async function fetchWithCache(url) {
   }
   const data = await response.json();
   
-  // Implement cache size limit
-  if (cacheStore.size >= MAX_CACHE_ENTRIES) {
-    const oldestKey = cacheStore.keys().next().value;
+  // Implement proper cache size limit with LRU eviction
+  if (cacheStore.size >= config.MAX_CACHE_ENTRIES) {
+    const entries = Array.from(cacheStore.entries());
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+    const oldestKey = entries[0][0];
     cacheStore.delete(oldestKey);
   }
   
@@ -98,7 +102,7 @@ async function fetchWithCache(url) {
   return data;
 }
 
-const fetchBlockRewardWithRetry = async (initialHeight, retries = 20) => {
+const fetchBlockRewardWithRetry = async (initialHeight, retries = config.BLOCK_REWARD_RETRY_COUNT) => {
   for (let i = 0; i <= retries; i++) {
     const targetBlock = initialHeight - i;
     try {
@@ -110,8 +114,8 @@ const fetchBlockRewardWithRetry = async (initialHeight, retries = 20) => {
         for (const arg of item.args || []) {
           if (arg.name === 'amount') {
             const raw = arg.value;
-            const reward = Number(raw) / 10 ** 12;
-            return reward.toFixed(4);
+            const reward = Number(raw) / Math.pow(10, config.FORMAT_BALANCE.decimals);
+            return reward.toFixed(config.BALANCE_FORMAT.DISPLAY_DECIMALS);
           }
         }
       }
@@ -123,13 +127,13 @@ const fetchBlockRewardWithRetry = async (initialHeight, retries = 20) => {
 };
 
 const extractDifficultyFromBlock = (block) => {
-  if (!block || !block.digest || !block.digest.logs) {
+  if (!block?.digest?.logs) {
     console.warn(`[extract] Block ${block?.height}: Missing digest/logs`);
     return null;
   }
 
   const sealLog = block.digest.logs.find(log => log.seal);
-  if (!sealLog || !Array.isArray(sealLog.seal) || sealLog.seal.length < 2) {
+  if (!sealLog?.seal || !Array.isArray(sealLog.seal) || sealLog.seal.length < 2) {
     console.warn(`[extract] Block ${block?.height}: Invalid sealLog`, sealLog);
     return null;
   }
@@ -143,6 +147,9 @@ const extractDifficultyFromBlock = (block) => {
   try {
     const leHex = sealHex.replace(/^0x/, '').slice(0, 8);
     const bytes = leHex.match(/../g);
+    if (!bytes) {
+      throw new Error("Invalid hex format");
+    }
     const reversed = bytes.reverse().join('');
     const difficulty = parseInt(reversed, 16);
 
@@ -162,7 +169,7 @@ const extractDifficultyFromBlock = (block) => {
 const MiningLeaderboardTable = ({ api }) => {
   const [loading, setLoading] = useState(true);
   const [allMiners, setAllMiners] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(100);
+  const [visibleCount, setVisibleCount] = useState(config.LEADERBOARD_VISIBLE_COUNT_DEFAULT);
   const [blockReward, setBlockReward] = useState(null);
   const [difficulty, setDifficulty] = useState(null);
   const [estimatedHashrate, setEstimatedHashrate] = useState(null);
@@ -171,36 +178,42 @@ const MiningLeaderboardTable = ({ api }) => {
   const [showRewardsUnlockModal, setShowRewardsUnlockModal] = useState(false);
   const [failedBlocks, setFailedBlocks] = useState([]);
   const [showFailedBlocks, setShowFailedBlocks] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Memoized filtered miners
-  const filteredMiners = useMemo(() => 
-    allMiners.filter(miner => 
-      miner.address.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-    [allMiners, searchQuery]
-  );
+  // Refs for cleanup
+  const fetchBlocksIntervalRef = useRef(null);
+  const fetchDifficultyIntervalRef = useRef(null);
+  const cleanupIntervalRef = useRef(null);
+
+  // Memoized filtered miners with debounced search
+  const filteredMiners = useMemo(() => {
+    if (!searchQuery.trim()) return allMiners;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return allMiners.filter(miner => 
+      miner.address.toLowerCase().includes(query)
+    );
+  }, [allMiners, searchQuery]);
 
   const totalMinersCount = allMiners.length;
 
   // Memoized chart data
   const chartData = useMemo(() => {
+    if (allMiners.length === 0) return [];
     const totalBlocks = allMiners.reduce((acc, miner) => acc + miner.blocks, 0) || 1;
     const getGroupShare = (start, end) => (
       (allMiners.slice(start, end).reduce((acc, miner) => acc + miner.blocks, 0) / totalBlocks) * 100
     );
-
-    return [
-      { name: 'Top 10', value: getGroupShare(0, 10) },
-      { name: '11-50', value: getGroupShare(10, 50) },
-      { name: '51-100', value: getGroupShare(50, 100) },
-      { name: '101-200', value: getGroupShare(100, 200) },
-      { name: '201-400', value: getGroupShare(200, 400) },
-      { name: 'Rest', value: getGroupShare(400, allMiners.length) },
-    ];
+    return config.LEADERBOARD_CHART_GROUPS.map(({ name, start, end }) => ({
+      name,
+      value: getGroupShare(start, end === null ? allMiners.length : end)
+    }));
   }, [allMiners]);
 
   // Memoized format functions
   const formatLastBlockAgo = useCallback((blocksAgo) => {
+    if (!blocksAgo || blocksAgo < 0) return 'Never';
+    
     const minutesAgo = blocksAgo;
     if (minutesAgo < 1) return '<1 min ago';
     if (minutesAgo < 60) return `${minutesAgo} min ago`;
@@ -212,18 +225,29 @@ const MiningLeaderboardTable = ({ api }) => {
 
   const formatHashrate = useCallback((value) => {
     if (!value || value <= 0) return '0 H/s';
-    const units = ['H/s', 'KH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s', 'EH/s'];
+    const units = config.HASHRATE_UNITS;
     let i = 0;
-    while (value >= 1000 && i < units.length - 1) {
-      value /= 1000;
+    let val = value;
+    while (val >= 1000 && i < units.length - 1) {
+      val /= 1000;
       i++;
     }
-    return `${value.toFixed(2)} ${units[i]}`;
+    return `${val.toFixed(config.BALANCE_FORMAT.SHARE_DECIMALS)} ${units[i]}`;
+  }, []);
+
+  // Optimized block processing with Web Workers or chunking
+  const processBlocksInChunks = useCallback((blocks, chunkSize = config.BLOCK_PROCESS_CHUNK_SIZE) => {
+    const chunks = [];
+    for (let i = 0; i < blocks.length; i += chunkSize) {
+      chunks.push(blocks.slice(i, i + chunkSize));
+    }
+    return chunks;
   }, []);
 
   // Fetch blocks with optimized batching
   const fetchBlocks = useCallback(async () => {
     try {
+      setError(null);
       const overview = await fetchWithRetry(`${config.API_BASE}/overview`);
       const { latestHeight } = overview;
       const storedBlocks = getStoredBlocks();
@@ -232,11 +256,11 @@ const MiningLeaderboardTable = ({ api }) => {
       
       const failedBlocks = [];
       const blockPromises = [];
-      const batchSize = 50; // Process blocks in batches
+      const batchSize = config.LEADERBOARD_BLOCK_BATCH_SIZE; // Process blocks in batches
 
       // Create batches of block heights to fetch
-      for (let i = 0; i < 1440; i += batchSize) {
-        const batch = Array.from({ length: Math.min(batchSize, 1440 - i) }, (_, j) => {
+      for (let i = 0; i < config.LEADERBOARD_BLOCKS_WINDOW; i += batchSize) {
+        const batch = Array.from({ length: Math.min(batchSize, config.LEADERBOARD_BLOCKS_WINDOW - i) }, (_, j) => {
           const blockHeight = latestHeight - (i + j);
           return storedBlocks[blockHeight] || 
             fetchWithRetry(`${config.API_BASE}/blocks/${blockHeight}`)
@@ -258,22 +282,17 @@ const MiningLeaderboardTable = ({ api }) => {
       const blocks = await Promise.all(blockPromises);
       const validBlocks = blocks.filter(block => block !== null);
 
-      // Process blocks in chunks
-      const processBlocksInChunks = (blocks, chunkSize = 100) => {
-        const chunks = [];
-        for (let i = 0; i < blocks.length; i += chunkSize) {
-          chunks.push(blocks.slice(i, i + chunkSize));
-        }
-        return chunks;
-      };
-
       const hashrateData = [];
       const authorCounts = {};
       const lastBlockHeightByAuthor = {};
 
-      // Process blocks in chunks
+      // Process blocks in chunks to avoid blocking the main thread
       const chunks = processBlocksInChunks(validBlocks);
+      
       for (const chunk of chunks) {
+        // Use requestAnimationFrame to yield control back to the browser
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
         chunk.forEach(block => {
           const digest = block?.digest?.logs || [];
           const seenAuthors = new Set();
@@ -303,7 +322,7 @@ const MiningLeaderboardTable = ({ api }) => {
 
           const difficulty = extractDifficultyFromBlock(block);
           if (difficulty && difficulty > 0) {
-            const hashrate = difficulty / 60;
+            const hashrate = difficulty / config.BLOCK_TIME_SECONDS;
             hashrateData.push({
               height: block.height,
               timestamp: block.time || Date.now(),
@@ -330,49 +349,64 @@ const MiningLeaderboardTable = ({ api }) => {
         });
 
       // Update state in a single batch
-      requestAnimationFrame(() => {
-        setAllMiners(sorted);
-        setPerBlockHashrate(
-          hashrateData.filter(item => typeof item.hashrate === 'number' && item.hashrate > 0).reverse()
-        );
-        setFailedBlocks(failedBlocks.length > 0 ? failedBlocks : []);
-        setLoading(false);
-      });
+      setAllMiners(sorted);
+      setPerBlockHashrate(
+        hashrateData.filter(item => typeof item.hashrate === 'number' && item.hashrate > 0).reverse()
+      );
+      setFailedBlocks(failedBlocks.length > 0 ? failedBlocks : []);
+      setLoading(false);
 
     } catch (e) {
       console.error('Failed to fetch leaderboard:', e);
+      setError(e.message || 'Failed to fetch leaderboard data');
       setFailedBlocks([]);
       setLoading(false);
     }
-  }, []);
+  }, [processBlocksInChunks]);
 
   // Initial fetch and interval setup
   useEffect(() => {
     fetchBlocks();
 
-    const interval = setInterval(fetchBlocks, 300000); // 5 minutes
-    return () => clearInterval(interval);
+    fetchBlocksIntervalRef.current = setInterval(fetchBlocks, config.LEADERBOARD_BLOCKS_REFRESH_INTERVAL); // 5 minutes
+    return () => {
+      if (fetchBlocksIntervalRef.current) {
+        clearInterval(fetchBlocksIntervalRef.current);
+      }
+    };
   }, [fetchBlocks]);
 
   // Cleanup interval for old blocks
   useEffect(() => {
-    const cleanupInterval = setInterval(() => {
-      const storedBlocks = getStoredBlocks();
-      const now = Date.now();
-      const blockHeights = Object.keys(storedBlocks).map(Number);
-      
-      // Remove blocks older than 24 hours
-      blockHeights.forEach(height => {
-        const block = storedBlocks[height];
-        if (now - block.time > BLOCK_CLEANUP_INTERVAL) {
-          delete storedBlocks[height];
-        }
-      });
+    cleanupIntervalRef.current = setInterval(() => {
+      try {
+        const storedBlocks = getStoredBlocks();
+        const now = Date.now();
+        const blockHeights = Object.keys(storedBlocks).map(Number);
+        
+        // Remove blocks older than 24 hours
+        let hasChanges = false;
+        blockHeights.forEach(height => {
+          const block = storedBlocks[height];
+          if (now - block.time > BLOCK_CLEANUP_INTERVAL) {
+            delete storedBlocks[height];
+            hasChanges = true;
+          }
+        });
 
-      localStorage.setItem(BLOCK_STORAGE_KEY, JSON.stringify(storedBlocks));
+        if (hasChanges) {
+          localStorage.setItem(BLOCK_STORAGE_KEY, JSON.stringify(storedBlocks));
+        }
+      } catch (error) {
+        console.error('Error during block cleanup:', error);
+      }
     }, BLOCK_CLEANUP_INTERVAL);
 
-    return () => clearInterval(cleanupInterval);
+    return () => {
+      if (cleanupIntervalRef.current) {
+        clearInterval(cleanupIntervalRef.current);
+      }
+    };
   }, []);
 
   // Fetch block reward
@@ -381,7 +415,7 @@ const MiningLeaderboardTable = ({ api }) => {
       try {
         const overviewRes = await fetchWithRetry(`${config.API_BASE}/overview`);
         const { finalizedHeight } = overviewRes;
-        const reward = await fetchBlockRewardWithRetry(finalizedHeight - 120);
+        const reward = await fetchBlockRewardWithRetry(finalizedHeight - config.BLOCK_REWARD_LOOKBACK_OFFSET);
         setBlockReward(reward);
       } catch (err) {
         console.error('Error fetching block reward:', err);
@@ -402,7 +436,7 @@ const MiningLeaderboardTable = ({ api }) => {
         // Try to get the block with retries
         let blockRes = null;
         let attempts = 0;
-        const maxAttempts = 3;
+        const maxAttempts = config.DIFFICULTY_FETCH_MAX_ATTEMPTS;
     
         while (attempts < maxAttempts) {
           try {
@@ -427,12 +461,17 @@ const MiningLeaderboardTable = ({ api }) => {
         if (seal && seal.length > 1) {
           const sealHex = seal[1].replace(/^0x/, '');
           const difficultyHexLE = sealHex.slice(0, 8);
-          const diff = parseInt(difficultyHexLE.match(/../g).reverse().join(''), 16);
-          setDifficulty(diff);
+          const bytes = difficultyHexLE.match(/../g);
+          if (bytes) {
+            const diff = parseInt(bytes.reverse().join(''), 16);
+            setDifficulty(diff);
     
-          const blockTimeSeconds = 60;
-          const estimated = diff / blockTimeSeconds;
-          setEstimatedHashrate(estimated);
+            const blockTimeSeconds = config.BLOCK_TIME_SECONDS;
+            const estimated = diff / blockTimeSeconds;
+            setEstimatedHashrate(estimated);
+          } else {
+            throw new Error('Invalid difficulty hex format');
+          }
         } else {
           console.warn('No valid seal found in block for difficulty calculation');
           setDifficulty(null);
@@ -446,13 +485,34 @@ const MiningLeaderboardTable = ({ api }) => {
     };
 
     fetchDifficulty();
-    const interval = setInterval(fetchDifficulty, 300000);
-    return () => clearInterval(interval);
+    fetchDifficultyIntervalRef.current = setInterval(fetchDifficulty, 300000);
+    return () => {
+      if (fetchDifficultyIntervalRef.current) {
+        clearInterval(fetchDifficultyIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchBlocksIntervalRef.current) clearInterval(fetchBlocksIntervalRef.current);
+      if (fetchDifficultyIntervalRef.current) clearInterval(fetchDifficultyIntervalRef.current);
+      if (cleanupIntervalRef.current) clearInterval(cleanupIntervalRef.current);
+    };
   }, []);
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <h1 className="text-3xl font-bold text-center">⛏️ 24h Mining Leaderboard</h1>
+      
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded">
+          <div className="font-semibold">Error:</div>
+          <div className="text-sm">{error}</div>
+        </div>
+      )}
       
       {/* Stats Cards */}
       <div className="flex space-x-8">
@@ -541,7 +601,7 @@ const MiningLeaderboardTable = ({ api }) => {
                         <span className="text-sm text-gray-400">{miner.blocks}</span>
                       </td>
                       <td className="border-t border-b border-gray-700 px-3 py-1 text-right">
-                        {miner.share.toFixed(2)}%
+                        {miner.share.toFixed(config.BALANCE_FORMAT.SHARE_DECIMALS)}%
                       </td>
                       <td className="border-t border-b border-gray-700 px-3 py-1 text-right">
                         <a
@@ -599,7 +659,7 @@ const MiningLeaderboardTable = ({ api }) => {
             {visibleCount < filteredMiners.length && (
               <div className="text-center mt-3">
                 <button
-                  onClick={() => setVisibleCount(visibleCount + 100)}
+                  onClick={() => setVisibleCount(visibleCount + config.LEADERBOARD_VISIBLE_COUNT_INCREMENT)}
                   className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
                 >
                   Show more

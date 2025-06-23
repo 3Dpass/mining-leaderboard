@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { BN } from '@polkadot/util';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { useWallet } from '../hooks/useWallet';
-import config from '../config';
+import { useWallet } from '../../hooks/useWallet';
+import config from '../../config';
 
 const ValidatorLockForm = ({ api }) => {
-  const { accounts, account, connect, injector } = useWallet();
+  const { accounts, account, connect, injector, connected } = useWallet();
 
   const [until, setUntil] = useState('');
   const [period, setPeriod] = useState(null);
@@ -16,6 +16,8 @@ const ValidatorLockForm = ({ api }) => {
 
   // Fetch balances for selected accounts
   useEffect(() => {
+    if (!api || !connected) return;
+
     const fetchBalances = async () => {
       if (!api || accounts.length === 0) return;
 
@@ -35,16 +37,18 @@ const ValidatorLockForm = ({ api }) => {
     };
 
     fetchBalances();
-  }, [api, accounts]);
+  }, [api, accounts, connected]);
 
   // Fetch current block height and set the until state
   useEffect(() => {
+    if (!api || !connected) return;
+
     const fetchCurrentBlockHeight = async () => {
       if (!api) return;
 
       try {
         const currentBlock = await api.derive.chain.bestNumber();
-        const targetBlock = currentBlock.toNumber() + 50000; // Calculate target block height
+        const targetBlock = currentBlock.toNumber() + config.VALIDATOR_LOCK_TARGET_BLOCK_OFFSET; // Calculate target block height
         setUntil(targetBlock.toString()); // Set the until state
       } catch (err) {
         console.error('Error fetching current block height:', err);
@@ -53,16 +57,16 @@ const ValidatorLockForm = ({ api }) => {
     };
 
     fetchCurrentBlockHeight();
-  }, [api]);
+  }, [api, connected]);
 
   const handleLock = async () => {
-    if (!account || !api || !injector || !until) return;
+    if (!account || !api || !injector || !until || !connected) return;
 
     try {
       setSubmitting(true);
       setError(null);
 
-      const amount = new BN('400000000000000000'); // 400,000 P3D
+      const amount = new BN(config.VALIDATOR_LOCK_AMOUNT_PLANCK); // 400,000 P3D
       const untilBlock = parseInt(until);
       const periodValue = period ? parseInt(period) : null;
 
@@ -143,7 +147,7 @@ const ValidatorLockForm = ({ api }) => {
       <div>
         <label className="block mb-1">Re-lock Period (Optional):</label>
         <div className="flex space-x-4">
-          {[null, 50000, 100000].map(option => (
+          {config.VALIDATOR_LOCK_PERIOD_OPTIONS.map(option => (
             <label key={option} className="flex items-center space-x-2">
               <input
                 type="radio"
@@ -158,7 +162,7 @@ const ValidatorLockForm = ({ api }) => {
       </div>
 
       <button
-        disabled={submitting || !until || !account}
+        disabled={submitting || !until || !account || !connected}
         onClick={handleLock}
         className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-white"
       >

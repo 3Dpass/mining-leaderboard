@@ -21,5 +21,5 @@ export const useWallet = () => {
     setInjector(signer);
   };
 
-  return { account, accounts, connect, injector };
+  return { account, accounts, connect, injector, connected: !!account };
 };

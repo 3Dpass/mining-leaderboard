@@ -34,8 +34,8 @@ export default function DialogRpcSettings({ isOpen, onClose, onEndpointChange })
       onClose={onClose}
       className="custom-rpc-dialog"
       style={{
-        backgroundColor: "#1f2937", // Dark gray background color
-        border: "2px solid #4B5563", // Set the border width and color
+        backgroundColor: config.DIALOG_RPC_SETTINGS_COLORS.background, // Dark gray background color
+        border: `2px solid ${config.DIALOG_RPC_SETTINGS_COLORS.border}`,
         borderRadius: "8px", // Rounded corners
      }}
       canEscapeKeyClose
@@ -52,7 +52,7 @@ export default function DialogRpcSettings({ isOpen, onClose, onEndpointChange })
             onChange={(e) => setValue(e.target.value)}
             fill
             className="custom-input"
-            style={{ backgroundColor: "#4B5563", color: "#FFFFFF", borderColor: "#4B5563" }}
+            style={{ backgroundColor: config.DIALOG_RPC_SETTINGS_COLORS.border, color: config.DIALOG_RPC_SETTINGS_COLORS.text, borderColor: config.DIALOG_RPC_SETTINGS_COLORS.border }}
           />
           <Button
             icon="reset"
@@ -70,7 +70,7 @@ export default function DialogRpcSettings({ isOpen, onClose, onEndpointChange })
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
           <Button 
             className="custom-cancel-button"
-            style={{ backgroundColor: "#4B5563", color: "#FFFFFF" }}
+            style={{ backgroundColor: config.DIALOG_RPC_SETTINGS_COLORS.border, color: config.DIALOG_RPC_SETTINGS_COLORS.text }}
             onClick={onClose}>Cancel
           </Button>
           <Button
