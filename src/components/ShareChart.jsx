@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import config from '../config';
+
+const COLORS = ['#00C49F', '#0088FE', '#FFBB28', '#FF8042', '#AA66CC', '#DD4477'];
 
 const ShareChart = ({ data }) => {
   const [showChart, setShowChart] = useState(true);
@@ -11,7 +12,7 @@ const ShareChart = ({ data }) => {
       const data = payload[0].payload;
       return (
         <div className="bg-gray-800 p-2 border border-gray-700 rounded text-white text-sm">
-          <p>{data.name}: {data.value.toFixed(config.BALANCE_FORMAT.SHARE_DECIMALS)}%</p>
+          <p>{data.name}: {data.value.toFixed(2)}%</p>
         </div>
       );
     }
@@ -24,7 +25,7 @@ const ShareChart = ({ data }) => {
     const radius = outerRadius + 30;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
-    const color = config.SHARE_CHART_COLORS[index % config.SHARE_CHART_COLORS.length];
+    const color = COLORS[index % COLORS.length];
 
     return (
       <text
@@ -35,7 +36,7 @@ const ShareChart = ({ data }) => {
         dominantBaseline="central"
         className="text-sm"
       >
-        {`${name} ${(percent * 100).toFixed(config.BALANCE_FORMAT.SHARE_DECIMALS)}%`}
+        {`${name} (${(percent * 100).toFixed(1)}%)`}
       </text>
     );
   };
@@ -66,7 +67,7 @@ const ShareChart = ({ data }) => {
                 labelLine={true}
               >
                 {data.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={config.SHARE_CHART_COLORS[index % config.SHARE_CHART_COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltip />} />

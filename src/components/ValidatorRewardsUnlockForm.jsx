@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { useWallet } from '../../hooks/useWallet';
-import config from '../../config';
+import { useWallet } from '../hooks/useWallet';
+import config from '../config';
 
 const ValidatorRewardsUnlockForm = ({ api }) => {
   const { accounts, account, connect, injector } = useWallet();
@@ -48,7 +48,7 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
         rewardLocks.entries().forEach(([blockBN, amountBN]) => {
           const block = blockBN.toNumber();
           const amount = amountBN.toBn();
-          const amountP3D = Number(amount.toString()) / Math.pow(10, config.FORMAT_BALANCE.decimals);
+          const amountP3D = Number(amount.toString()) / 1e12;
 
           totalLocked += amountP3D;
           if (block <= currentBlockHeight) {
@@ -101,7 +101,7 @@ const ValidatorRewardsUnlockForm = ({ api }) => {
       rewardLocks.entries().forEach(([blockBN, amountBN]) => {
         const blockHeight = blockBN.toNumber();
         const amountRaw = amountBN.toBn().toString();
-        const amountP3D = Number(amountRaw) / Math.pow(10, config.FORMAT_BALANCE.decimals);
+        const amountP3D = Number(amountRaw) / 1e12;
 
         schedule.push({
           blockHeight,

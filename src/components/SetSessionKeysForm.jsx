@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp';
 import { encodeAddress } from '@polkadot/util-crypto';
-import config from '../../config';
+import config from '../config';
 
 const SetSessionKeysForm = ({ api, onClose }) => {
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState('');
-  const [grandpaKey, setGrandpaKey] = useState(config.SET_SESSION_KEYS_DEFAULT_KEY);
-  const [imonlineKey, setImonlineKey] = useState(config.SET_SESSION_KEYS_DEFAULT_KEY);
-  const [proof, setProof] = useState(config.SET_SESSION_KEYS_DEFAULT_KEY);
+  const [grandpaKey, setGrandpaKey] = useState('0x');
+  const [imonlineKey, setImonlineKey] = useState('0x');
+  const [proof, setProof] = useState('0x');
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [p3dBalance, setP3dBalance] = useState(null); // State for P3D balance
