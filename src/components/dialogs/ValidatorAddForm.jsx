@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { useWallet } from '../hooks/useWallet';
-import config from '../config';
+import { useWallet } from '../../hooks/useWallet';
+import config from '../../config';
 
 const ValidatorAddForm = ({ api }) => {
   const { accounts, account, connect, injector } = useWallet();
@@ -126,8 +126,8 @@ const ValidatorAddForm = ({ api }) => {
       <div className="text-left text-sm text-gray-500">
         <p>In order to join, you must have:</p>
         <ul>
-          <li>1. Locked: 400,000 {config.FORMAT_BALANCE.unit} for 50,000+ blocks ahead</li>
-          <li>2. Identity: "Reasonable"</li>
+          <li>1. Locked: {config.VALIDATOR_ADD_MIN_LOCK_AMOUNT.toLocaleString()} {config.FORMAT_BALANCE.unit} for {config.VALIDATOR_ADD_MIN_BLOCKS_AHEAD.toLocaleString()}+ blocks ahead</li>
+          <li>2. Identity: "{config.VALIDATOR_ADD_IDENTITY_REQUIREMENT}"</li>
         </ul>
       </div>
       <div className="mt-3 text-left text-sm text-white-500">
@@ -173,9 +173,9 @@ const ValidatorAddForm = ({ api }) => {
           {validatorInfo.autoRelock && (
             <p>🔁 Auto Re-lock: every {validatorInfo.autoRelock} blocks</p>
           )}
-          {(validatorInfo.amount < 400_000n || validatorInfo.blocksRemaining < 50000) && (
+          {(validatorInfo.amount < BigInt(config.VALIDATOR_ADD_MIN_LOCK_AMOUNT) || validatorInfo.blocksRemaining < config.VALIDATOR_ADD_MIN_BLOCKS_AHEAD) && (
             <p className="text-red-400 text-xs">
-              ❗ Must lock at least 400,000 {config.FORMAT_BALANCE.unit} for 50,000+ blocks ahead
+              ❗ Must lock at least {config.VALIDATOR_ADD_MIN_LOCK_AMOUNT.toLocaleString()} {config.FORMAT_BALANCE.unit} for {config.VALIDATOR_ADD_MIN_BLOCKS_AHEAD.toLocaleString()}+ blocks ahead
             </p>
           )}
         </div>
@@ -183,7 +183,7 @@ const ValidatorAddForm = ({ api }) => {
 
       <button
         onClick={handleSubmit}
-        disabled={submitting || !account || (validatorInfo && (validatorInfo.amount < 400_000n || validatorInfo.blocksRemaining < 50000))}
+        disabled={submitting || !account || (validatorInfo && (validatorInfo.amount < BigInt(config.VALIDATOR_ADD_MIN_LOCK_AMOUNT) || validatorInfo.blocksRemaining < config.VALIDATOR_ADD_MIN_BLOCKS_AHEAD))}
         className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-white"
       >
         {submitting ? 'Submitting...' : 'Join Validator Set'}

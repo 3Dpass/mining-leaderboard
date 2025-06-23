@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BN } from '@polkadot/util';
 import { formatBalance } from '@polkadot/util';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { useWallet } from '../hooks/useWallet';
-import config from '../config';
+import { useWallet } from '../../hooks/useWallet';
+import config from '../../config';
 
 // Helper to safely convert decimal strings to BN
 const toBnP3D = (val) => {
