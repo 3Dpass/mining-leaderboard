@@ -113,7 +113,7 @@ const AppContent = () => {
       </div>
 
       <div className="w-full max-w-4xl mx-auto p-4 space-y-4">
-        <Notifications api={api} />
+        <Notifications api={api} connected={connected} />
       </div>
 
       {/* Routes */}
